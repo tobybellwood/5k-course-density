@@ -51,6 +51,13 @@ test.describe('built static course density application', () => {
     await expect(page.locator('#map')).toBeVisible();
     await expect(page.locator('#map .leaflet-overlay-pane path')).not.toHaveCount(0);
     await expect(page.locator('#map .leaflet-marker-icon').first()).toBeVisible();
+    await expect(page.locator('#map .leaflet-marker-icon').first()).toHaveAttribute(
+      'src',
+      /\/assets\/marker-icon-[^/]+\.png$/,
+    );
+    await expect.poll(() => page.locator('#map .leaflet-marker-icon').first().evaluate(
+      (element) => (element as HTMLImageElement).naturalWidth,
+    )).toBeGreaterThan(0);
     await expect(page.locator('#markers-layer-toggle')).toBeChecked();
     await expect(page.locator('#density-layer-toggle')).toBeChecked();
     await expect(page.locator('#start-playback-button')).toBeEnabled();

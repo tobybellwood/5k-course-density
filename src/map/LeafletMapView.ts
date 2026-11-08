@@ -1,6 +1,17 @@
 import 'leaflet/dist/leaflet.css';
-import 'leaflet/dist/leaflet.css';
+import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
+import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import * as L from 'leaflet';
+
+// Leaflet's default URLs are package-relative and resolve incorrectly on project pages.
+// Vite-imported assets are emitted with the configured base path instead.
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2xUrl,
+  iconUrl: markerIconUrl,
+  shadowUrl: markerShadowUrl,
+});
 
 import type {
   Coordinate,

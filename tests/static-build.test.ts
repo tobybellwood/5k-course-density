@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -37,6 +37,19 @@ describe('static production build', () => {
     expect(scriptReferences.length).toBeGreaterThan(0);
     expect(entrypoint).toContain('./examples/Cricket_Captains_Walk_parkrun.gpx');
     expect(entrypoint).toContain('./examples/results%20_%20Riverbank%20parkrun.html');
+
+    const assetDirectory = resolve(distDirectory, 'assets');
+    const markerAssets = [
+      /^marker-icon-[^/]+\.png$/,
+      /^marker-icon-2x-[^/]+\.png$/,
+      /^marker-shadow-[^/]+\.png$/,
+    ];
+    const emittedAssets = readdirSync(assetDirectory);
+    for (const markerAssetPattern of markerAssets) {
+      const markerAsset = emittedAssets.find((asset) => markerAssetPattern.test(asset));
+      expect(markerAsset).toBeDefined();
+      expect(statSync(resolve(assetDirectory, markerAsset ?? '')).size).toBeGreaterThan(0);
+    }
 
     for (const scriptReference of scriptReferences) {
       expect(scriptReference).not.toMatch(/^https?:\/\//);

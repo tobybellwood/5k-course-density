@@ -58,6 +58,8 @@ const leafletState = vi.hoisted(() => {
   }
 
   class MockDefaultIcon {
+    public static readonly mergeOptions = vi.fn();
+
     public constructor(public readonly options: Record<string, unknown>) {}
   }
 

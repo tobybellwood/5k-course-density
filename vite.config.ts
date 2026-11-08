@@ -5,5 +5,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    // Keep imported Leaflet PNGs as project-relative files rather than inlining them.
+    assetsInlineLimit: 0,
   },
 });
