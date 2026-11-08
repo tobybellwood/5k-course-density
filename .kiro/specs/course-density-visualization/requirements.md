@@ -26,6 +26,11 @@ The Course Density Visualization Tool is a static browser application for explor
 - **Density Layer**: The map layer that represents the number of Participant Positions within each Rendered Geographic Area at the current Simulation Time.
 - **Validation Summary**: The collection of Validation Notices and excluded-row counts produced while processing input.
 - **Validation Notice**: A visible message that identifies invalid or incomplete input and describes the corrective action.
+- **Density Settings**: The active Grid Size, Minimum People-per-Circle Filter, and optional Warning Colour Threshold used by the Density Layer.
+- **Grid Size**: The width and height in meters of each geographic density cell; supported values are 10, 25, 50, and 100 meters.
+- **Minimum People-per-Circle Filter**: The minimum participant count required for a density cell to be rendered as a circle.
+- **Warning Colour Threshold**: An optional participant count at which rendered cells use the warning colour; an enabled threshold must be greater than the Minimum People-per-Circle Filter.
+- **Browser Session**: The period from opening a browser context until that context is closed; Density Settings persist only within this period.
 
 ## Requirements
 
@@ -97,3 +102,20 @@ The Course Density Visualization Tool is a static browser application for explor
 3. IF a results table contains rows that the Results Parser excludes, THEN THE Static Visualization Tool SHALL report the number of excluded rows and the reason categories in the validation summary.
 4. IF a replacement file fails validation, THEN THE Static Visualization Tool SHALL preserve the last valid Course Track or Participant Records for the failed input and keep the built-in example available through reset.
 5. THE Static Visualization Tool SHALL perform GPX parsing, results parsing, position inference, playback, and density calculation in the browser without requiring a server-side service.
+
+### Requirement 6: Configure density visualization settings
+
+**User Story:** As a race analyst, I want to adjust density aggregation and warning display settings, so that I can inspect congestion at the level of detail that suits the course and audience.
+
+#### Acceptance Criteria
+
+1. WHEN the Static Visualization Tool initializes density settings, THE Static Visualization Tool SHALL use a 25-meter Grid Size, a Minimum People-per-Circle Filter of 1, and no enabled Warning Colour Threshold.
+2. WHEN a user selects a Grid Size, THE Static Visualization Tool SHALL accept only 10 meters, 25 meters, 50 meters, or 100 meters and SHALL retain the last valid Grid Size while displaying a Validation Notice for any other value.
+3. WHEN a user enters a Minimum People-per-Circle Filter, THE Static Visualization Tool SHALL accept only a whole number greater than or equal to 1 and SHALL retain the last valid filter while displaying a Validation Notice for a non-numeric, fractional, zero, or negative value.
+4. WHEN a user enables a Warning Colour Threshold, THE Static Visualization Tool SHALL accept only a whole number strictly greater than the current Minimum People-per-Circle Filter and SHALL retain the disabled or last valid threshold while displaying a Validation Notice for a threshold less than or equal to the current filter.
+5. WHEN a user changes a valid density setting, THE Static Visualization Tool SHALL apply the setting immediately to the current Simulation Snapshot without changing Simulation Time, Playback State, or Participant Positions.
+6. WHEN a user changes a valid density setting during a browser session, THE Static Visualization Tool SHALL preserve the setting for the remainder of that browser session and SHALL initialize the default density settings in a later browser session.
+7. WHEN density settings are available, THE Static Visualization Tool SHALL provide keyboard-accessible labeled controls, expose the active Grid Size, Minimum People-per-Circle Filter, and Warning Colour Threshold state in status text, and display a legend that explains the active density and warning colours.
+8. WHEN the Density Layer aggregates Participant Positions, THE Density Layer SHALL produce the same cell boundaries, counts, filtered cells, and colours for the same Participant Positions and density settings.
+9. WHEN the Density Layer applies the Minimum People-per-Circle Filter, THE Density Layer SHALL include a cell when its participant count is greater than or equal to the filter and SHALL exclude a cell when its participant count is less than the filter.
+10. WHEN a rendered cell count is greater than or equal to an enabled Warning Colour Threshold, THE Density Layer SHALL use the warning colour, and WHEN a rendered cell count is less than the threshold, THE Density Layer SHALL use the normal density colour scale.

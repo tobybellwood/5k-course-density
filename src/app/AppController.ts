@@ -7,6 +7,7 @@ export {
   resetToExample,
   setLayerVisibility,
   toggleLayer,
+  updateDensitySettings,
   updateSnapshot,
   updateValidation,
 } from './state';

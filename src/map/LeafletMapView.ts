@@ -5,6 +5,9 @@ import * as L from 'leaflet';
 import type {
   Coordinate,
   CourseTrack,
+  DensityCell,
+  DensityCellColour,
+  DensitySettings,
   MarkerDescriptor,
   SimulationSnapshot,
 } from '../app/types';
@@ -21,7 +24,10 @@ export type LeafletMapViewOptions = {
   /** Supply an existing Leaflet map when the host owns map creation. */
   readonly map?: L.Map;
   readonly mapOptions?: L.MapOptions;
+  /** Legacy grid-size override for hosts not yet passing full settings. */
   readonly densityGridSizeMeters?: number;
+  /** Validated density settings used when rebuilding the density layer. */
+  readonly densitySettings?: DensitySettings;
   /** Optional initial values copied from the application layer flags. */
   readonly layerVisibility?: Partial<LeafletLayerVisibility>;
   /** Optional tile source. The map remains usable without a network basemap. */
@@ -78,11 +84,23 @@ export function createParticipantPopupContent(
   return content;
 }
 
-function densityStyle(count: number, maximumCount: number): L.PathOptions {
+const DENSITY_COLOURS: Record<DensityCellColour, string> = {
+  'density-low': '#93c5fd',
+  'density-medium': '#fbbf24',
+  'density-high': '#ef4444',
+  warning: '#991b1b',
+};
+
+function densityStyle(
+  colour: DensityCellColour,
+  count: number,
+  maximumCount: number,
+): L.PathOptions {
   const intensity = maximumCount <= 1 ? 1 : count / maximumCount;
+  const fillColour = DENSITY_COLOURS[colour];
   return {
-    color: '#9b1c1c',
-    fillColor: '#ef4444',
+    color: colour === 'warning' ? '#7f1d1d' : '#1d4ed8',
+    fillColor: fillColour,
     fillOpacity: 0.2 + intensity * 0.55,
     opacity: 0.65 + intensity * 0.35,
     weight: 1,
@@ -101,7 +119,7 @@ export class LeafletMapView {
   public readonly densityLayerGroup: L.LayerGroup;
   public readonly basemapLayerGroup: L.LayerGroup;
 
-  private readonly densityGridSizeMeters: number;
+  private densitySettings: DensitySettings;
   private readonly layerVisibility: Record<LeafletLayerName, boolean> = {
     markers: true,
     density: true,
@@ -115,7 +133,11 @@ export class LeafletMapView {
       ...DEFAULT_MAP_OPTIONS,
       ...options.mapOptions,
     });
-    this.densityGridSizeMeters = options.densityGridSizeMeters ?? DEFAULT_DENSITY_GRID_SIZE_METERS;
+    this.densitySettings = options.densitySettings ?? {
+      gridSizeMeters: (options.densityGridSizeMeters ?? DEFAULT_DENSITY_GRID_SIZE_METERS) as DensitySettings['gridSizeMeters'],
+      minimumPeoplePerCircle: 1,
+      warningColourThreshold: null,
+    };
 
     this.routeLayerGroup = L.layerGroup().addTo(this.map);
     this.markerLayerGroup = L.layerGroup().addTo(this.map);
@@ -177,7 +199,7 @@ export class LeafletMapView {
    */
   public renderSnapshot(snapshot: SimulationSnapshot): void {
     const renderModel = buildVisualizationRenderModel(snapshot, {
-      gridSizeMeters: this.densityGridSizeMeters,
+      densitySettings: this.densitySettings,
     });
 
     this.markerLayerGroup.clearLayers();
@@ -185,22 +207,43 @@ export class LeafletMapView {
       this.markerLayerGroup.addLayer(this.createMarker(markerDescriptor));
     }
 
+    this.renderDensityCells(renderModel.density, renderModel.densityGridSizeMeters);
+    this.applyLayerVisibility('markers');
+    this.applyLayerVisibility('density');
+  }
+
+  /** Update settings without rebuilding a layer, for an unavailable snapshot. */
+  public setDensitySettings(settings: DensitySettings): void {
+    this.densitySettings = settings;
+  }
+
+  /** Rebuild only the density layer for a new settings value and snapshot. */
+  public renderDensity(snapshot: SimulationSnapshot, settings: DensitySettings): void {
+    this.setDensitySettings(settings);
+    const renderModel = buildVisualizationRenderModel(snapshot, {
+      densitySettings: settings,
+    });
+    this.renderDensityCells(renderModel.density, renderModel.densityGridSizeMeters);
+    this.applyLayerVisibility('density');
+  }
+
+  private renderDensityCells(
+    cells: readonly DensityCell[],
+    gridSizeMeters: number,
+  ): void {
     this.densityLayerGroup.clearLayers();
-    const maximumCount = renderModel.density.reduce(
+    const maximumCount = cells.reduce(
       (maximum, cell) => Math.max(maximum, cell.count),
       0,
     );
-    for (const cell of renderModel.density) {
+    for (const cell of cells) {
       this.densityLayerGroup.addLayer(
         L.circle(coordinateToLatLng(cell.coordinate), {
-          ...densityStyle(cell.count, maximumCount),
-          radius: renderModel.densityGridSizeMeters / 2,
+          ...densityStyle(cell.colour, cell.count, maximumCount),
+          radius: gridSizeMeters / 2,
         }),
       );
     }
-
-    this.applyLayerVisibility('markers');
-    this.applyLayerVisibility('density');
   }
 
   /** Render a snapshot, or clear both dynamic layers when no snapshot exists. */

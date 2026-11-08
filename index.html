@@ -80,6 +80,14 @@
               <dt>Excluded rows</dt>
               <dd id="excluded-row-count">0</dd>
             </div>
+            <div>
+              <dt>Density settings</dt>
+              <dd id="density-settings-summary">25 m grid · minimum 1</dd>
+            </div>
+            <div>
+              <dt>Warning threshold</dt>
+              <dd id="density-warning-state">Disabled</dd>
+            </div>
           </dl>
         </section>
 
@@ -123,6 +131,79 @@
               />
               Course density
             </label>
+          </div>
+
+          <fieldset class="density-settings">
+            <legend>Density settings</legend>
+            <div class="density-control">
+              <label for="density-grid-size">Grid size</label>
+              <select
+                id="density-grid-size"
+                name="density-grid-size"
+                aria-describedby="density-grid-size-hint density-settings-notice"
+              >
+                <option value="10">10 m</option>
+                <option value="25" selected>25 m</option>
+                <option value="50">50 m</option>
+                <option value="100">100 m</option>
+              </select>
+              <span id="density-grid-size-hint" class="control-hint">
+                Choose the width of each density cell.
+              </span>
+            </div>
+            <div class="density-control">
+              <label for="density-minimum">Minimum people per circle</label>
+              <input
+                id="density-minimum"
+                name="density-minimum"
+                type="number"
+                min="1"
+                step="1"
+                value="1"
+                inputmode="numeric"
+                aria-describedby="density-minimum-hint density-settings-notice"
+              />
+              <span id="density-minimum-hint" class="control-hint">
+                Cells below this whole-number count are hidden.
+              </span>
+            </div>
+            <div class="density-control">
+              <label for="density-warning-threshold">Warning colour threshold</label>
+              <select
+                id="density-warning-threshold"
+                name="density-warning-threshold"
+                aria-describedby="density-warning-threshold-hint density-settings-notice"
+              >
+                <option value="disabled" selected>Disabled</option>
+                <option value="2">2 people</option>
+                <option value="5">5 people</option>
+                <option value="10">10 people</option>
+                <option value="25">25 people</option>
+                <option value="50">50 people</option>
+                <option value="100">100 people</option>
+              </select>
+              <span id="density-warning-threshold-hint" class="control-hint">
+                Warning colour applies at or above the selected count.
+              </span>
+            </div>
+            <p
+              id="density-settings-notice"
+              class="control-notice"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            ></p>
+          </fieldset>
+
+          <div id="density-legend" class="density-legend" aria-live="polite" aria-atomic="true">
+            <h3>Density legend</h3>
+            <ul>
+              <li><span class="legend-swatch legend-swatch-low" aria-hidden="true"></span>Low density</li>
+              <li><span class="legend-swatch legend-swatch-medium" aria-hidden="true"></span>Medium density</li>
+              <li><span class="legend-swatch legend-swatch-high" aria-hidden="true"></span>High density</li>
+              <li id="density-warning-legend"><span class="legend-swatch legend-swatch-warning" aria-hidden="true"></span>Warning colour is disabled</li>
+            </ul>
+            <p id="density-filter-legend">Cells below the minimum filter are hidden.</p>
           </div>
         </section>
 

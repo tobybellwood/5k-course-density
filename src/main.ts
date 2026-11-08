@@ -24,10 +24,13 @@ export async function bootstrapApplication(
   const inputCoordinator = new InputCoordinator({ controller: appController });
   let mapView: LeafletMapView | null = null;
   let renderedCourse = appController.state.course;
+  let renderedSnapshot = appController.state.snapshot;
+  let renderedDensitySettings = appController.state.densitySettings;
   let mapNotice: string | null = null;
 
   try {
     mapView = new LeafletMapView('map', {
+      densitySettings: appController.state.densitySettings,
       layerVisibility: appController.state.layers,
     });
   } catch (error) {
@@ -53,7 +56,21 @@ export async function bootstrapApplication(
           mapView.renderCourse(state.course);
         }
       }
-      mapView.renderSnapshotOrClear(state.snapshot);
+      const snapshotChanged = state.snapshot !== renderedSnapshot;
+      const densitySettingsChanged = state.densitySettings.gridSizeMeters !== renderedDensitySettings.gridSizeMeters
+        || state.densitySettings.minimumPeoplePerCircle !== renderedDensitySettings.minimumPeoplePerCircle
+        || state.densitySettings.warningColourThreshold !== renderedDensitySettings.warningColourThreshold;
+      if (snapshotChanged) {
+        mapView.renderSnapshotOrClear(state.snapshot);
+        renderedSnapshot = state.snapshot;
+      } else if (densitySettingsChanged) {
+        if (state.snapshot !== null) {
+          mapView.renderDensity(state.snapshot, state.densitySettings);
+        } else {
+          mapView.setDensitySettings(state.densitySettings);
+        }
+      }
+      renderedDensitySettings = state.densitySettings;
       mapView.syncLayerVisibility(state.layers);
     } catch (error) {
       mapNotice = `The map could not render the current input. Parser and playback status remain available. ${errorMessage(error, 'Unknown map rendering error.')}`;
@@ -107,6 +124,9 @@ export async function bootstrapApplication(
     },
     onDensityVisibilityChange: (visible) => {
       appController.setLayerVisibility('density', visible);
+    },
+    onDensitySettingsChanged: (settings) => {
+      appController.updateDensitySettings(settings);
     },
   });
 

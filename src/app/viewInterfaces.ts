@@ -1,6 +1,7 @@
 import type {
   ApplicationState,
   CourseTrack,
+  DensitySettings,
   SimulationSnapshot,
 } from './types';
 
@@ -26,6 +27,7 @@ export type PlaybackStatusViewModel = Readonly<{
   playback: ApplicationState['playback'];
   participantCount: number;
   excludedRowCount: number;
+  densitySettings: DensitySettings;
   canPlay: boolean;
   controls: PlaybackControlState;
 }>;
@@ -36,6 +38,8 @@ export interface MapView {
   setCourse?(course: CourseTrack): void;
   renderSnapshot?(snapshot: SimulationSnapshot): void;
   renderSnapshotOrClear?(snapshot: SimulationSnapshot | null): void;
+  setDensitySettings?(settings: DensitySettings): void;
+  renderDensity?(snapshot: SimulationSnapshot, settings: DensitySettings): void;
   syncLayerVisibility?(visibility: ApplicationState['layers']): void;
 }
 

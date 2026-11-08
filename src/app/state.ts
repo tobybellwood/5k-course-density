@@ -11,11 +11,15 @@ import { calculateTotalDuration, simulate } from '../domain/simulation';
 import {
   addValidationNotice,
   createApplicationState,
-  emptyValidationSummary,
   formatRetainedInputNotice,
   isValidSimulationSnapshot,
   mergeValidationSummaries,
 } from '../domain/validation';
+import {
+  restoreDensitySettings,
+  saveDensitySettings,
+  updateDensitySettings as validateDensitySettingsEdit,
+} from '../domain/densitySettings';
 import type {
   AppMapView,
   AppStatusView,
@@ -24,6 +28,15 @@ import type {
 } from './viewInterfaces';
 
 export type LayerName = 'markers' | 'density';
+
+function sameDensitySettings(
+  first: ApplicationState['densitySettings'],
+  second: ApplicationState['densitySettings'],
+): boolean {
+  return first.gridSizeMeters === second.gridSizeMeters
+    && first.minimumPeoplePerCircle === second.minimumPeoplePerCircle
+    && first.warningColourThreshold === second.warningColourThreshold;
+}
 
 function validState(state: ApplicationState): ApplicationState {
   const result = createApplicationState(state);
@@ -34,6 +47,7 @@ function validState(state: ApplicationState): ApplicationState {
 }
 
 export function createInitialApplicationState(): ApplicationState {
+  const restoredDensity = restoreDensitySettings();
   return validState({
     course: null,
     participants: [],
@@ -41,7 +55,8 @@ export function createInitialApplicationState(): ApplicationState {
     simulationTimeSeconds: 0,
     playback: 'paused',
     layers: { markers: true, density: true },
-    validation: emptyValidationSummary(),
+    densitySettings: restoredDensity.settings,
+    validation: restoredDensity.validation,
     snapshot: null,
   });
 }
@@ -146,6 +161,26 @@ export function replaceParticipants(
   result: ParseResult<ParticipantRecord[]>,
 ): ApplicationState {
   return replaceParticipantResult(state, result);
+}
+
+export function updateDensitySettings(
+  state: ApplicationState,
+  edit: Partial<ApplicationState['densitySettings']>,
+): ApplicationState {
+  const result = validateDensitySettingsEdit(state.densitySettings, edit);
+  if (!result.ok) {
+    return validState({
+      ...state,
+      validation: result.validation,
+    });
+  }
+
+  const saved = saveDensitySettings(result.settings);
+  return validState({
+    ...state,
+    densitySettings: result.settings,
+    validation: saved.ok ? state.validation : saved.validation,
+  });
 }
 
 export function updateValidation(
@@ -264,6 +299,8 @@ export class AppController {
     if (this.mapView !== undefined) {
       const courseChanged = previousState === null || previousState.course !== nextState.course;
       const snapshotChanged = previousState === null || previousState.snapshot !== nextState.snapshot;
+      const densitySettingsChanged = previousState === null
+        || !sameDensitySettings(previousState.densitySettings, nextState.densitySettings);
       const layersChanged = previousState === null
         || previousState.layers.markers !== nextState.layers.markers
         || previousState.layers.density !== nextState.layers.density;
@@ -276,6 +313,12 @@ export class AppController {
           this.mapView.renderSnapshotOrClear(nextState.snapshot);
         } else if (nextState.snapshot !== null) {
           this.mapView.renderSnapshot?.(nextState.snapshot);
+        }
+      } else if (densitySettingsChanged) {
+        if (nextState.snapshot !== null) {
+          this.mapView.renderDensity?.(nextState.snapshot, nextState.densitySettings);
+        } else {
+          this.mapView.setDensitySettings?.(nextState.densitySettings);
         }
       }
       if (layersChanged) {
@@ -301,6 +344,7 @@ export class AppController {
       playback: state.playback,
       participantCount: state.participants.length,
       excludedRowCount: state.validation.excludedRows,
+      densitySettings: state.densitySettings,
       canPlay,
       controls,
     };
@@ -319,6 +363,12 @@ export class AppController {
 
   public replaceParticipants(result: ParseResult<ParticipantRecord[]>): ApplicationState {
     return this.commit(replaceParticipants(this.currentState, result));
+  }
+
+  public updateDensitySettings(
+    edit: Partial<ApplicationState['densitySettings']>,
+  ): ApplicationState {
+    return this.commit(updateDensitySettings(this.currentState, edit));
   }
 
   public updateValidation(validation: ValidationSummary): ApplicationState {

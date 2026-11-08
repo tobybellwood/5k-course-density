@@ -154,8 +154,56 @@ Build the static Vite/TypeScript browser application described in the design. Th
     - Verify built-in startup, local GPX/results replacement, failed replacement retention, playback controls and status, route/markers/density display, popup content, layer toggles, and reset-to-example.
     - _Requirements: 1.1, 1.2, 1.3, 1.6, 1.8, 3.2, 3.3, 3.4, 3.5, 3.7, 4.1, 4.2, 4.3, 4.5, 4.6, 5.1, 5.2, 5.4_
 
-- [x] 10. Final checkpoint - Ensure all tests pass
-  - Run the unit, property, static-build, mocked Leaflet, and browser integration test suites with single-run commands.
+- [x] 10. Implement configurable density settings and live visualization updates
+  - [x] 10.1 Add density settings models, defaults, validation, and browser-session storage.
+    - Define `DensitySettings` with Grid Size values 10, 25, 50, and 100 meters, a whole-number minimum of at least 1, and a nullable warning threshold.
+    - Initialize defaults to 25 meters, minimum 1, and disabled warning threshold; restore only valid settings from the current browser session and fall back safely when storage is unavailable or invalid.
+    - Preserve the previous valid setting when an edit violates a range, type, or cross-field validation rule and return a specific validation reason.
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.6_
+
+  - [x] 10.2 Update deterministic density aggregation, filtering, and colouring for `DensitySettings`.
+    - Use the selected meter grid size for cell quantization and retain cells with counts greater than or equal to the minimum filter.
+    - Assign stable normal low/medium/high colours and apply the warning colour for counts greater than or equal to an enabled warning threshold.
+    - Return stable cell ordering and preserve exact count conservation for repeated inputs.
+    - _Requirements: 6.8, 6.9, 6.10_
+
+  - [x] 10.3 Wire settings changes through application state and map rendering without resetting playback.
+    - Add settings to the application state and expose a setting-update transition that validates, stores, and recomputes density from the current snapshot.
+    - Update the current density layer immediately while preserving Simulation Time, Playback State, and Participant Positions during paused and running playback.
+    - Keep marker output unchanged when only density settings change.
+    - _Requirements: 6.5, 6.6, 6.8, 6.9, 6.10_
+
+  - [x] 10.4 Add accessible density controls, status text, legend, validation notices, and responsive layout support.
+    - Add keyboard-accessible labeled controls for the four grid sizes, minimum count, and an explicit disabled warning-threshold option.
+    - Display active settings and warning state in the status region and explain normal, warning, and filtered-cell behavior in the legend.
+    - Keep controls, notices, legend, and map usable at narrow widths without obscuring playback controls.
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.7_
+
+  - [x]* 10.5 Write property tests for settings validation and density boundaries.
+    - **Property 12: Density settings validation preserves the cross-field invariant**
+    - **Validates: Requirements 6.2, 6.3, 6.4**
+    - **Property 13: Minimum filter uses inclusive count boundaries**
+    - **Validates: Requirements 6.8, 6.9**
+    - **Property 14: Warning threshold uses an inclusive colour boundary**
+    - **Validates: Requirements 6.4, 6.10**
+    - **Property 15: Density aggregation and colouring are deterministic**
+    - **Validates: Requirements 6.8, 6.9, 6.10**
+    - Run each property with at least 100 generated cases and include the design-property tag in each test.
+
+  - [x]* 10.6 Write unit tests for defaults, invalid edits, session restoration, and immediate state updates.
+    - Cover default values, explicit disabled threshold, every supported grid size, rejected threshold equality and below-minimum values, invalid minimum values, and retained prior settings.
+    - Verify accepted changes update density immediately without changing simulation time, playback state, participant positions, or marker descriptors.
+    - Verify browser-session restoration and fallback behavior without testing persistence across visits.
+    - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6_
+
+  - [x]* 10.7 Write browser integration tests for accessible controls, status/legend behavior, responsive layout, and playback preservation.
+    - Verify keyboard operation and accessible names, active setting/status text, warning legend changes, and filtered-cell messaging.
+    - Change settings while paused and running, then verify playback time and state continue unchanged and density updates immediately.
+    - Verify the controls and legend remain usable at a narrow viewport and that session settings do not become defaults in a new browser context.
+    - _Requirements: 6.5, 6.6, 6.7_
+
+- [x] 11. Final checkpoint - Ensure all density-setting tests pass
+  - Run the focused unit, property, mocked Leaflet, and browser integration suites for density settings with single-run commands.
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
@@ -163,6 +211,8 @@ Build the static Vite/TypeScript browser application described in the design. Th
 - Tasks marked with `*` are optional test tasks and may be skipped for a faster MVP, but they document the required validation coverage.
 - Each implementation task builds on earlier domain or application wiring and references the acceptance criteria it satisfies.
 - Property tests are included for every correctness property in the design; each property is named and mapped to its requirements.
+- The density-setting tasks preserve current defaults while adding live, session-scoped configuration and cover both pure density behavior and browser accessibility.
+- Browser tests use a fresh browser context when verifying that settings do not persist across visits.
 - Browser integration tests cover Leaflet, file inputs, playback controls, and static-app behavior that pure domain tests cannot cover.
 - Checkpoint tasks are validation points only and are not included in the dependency graph.
 
@@ -179,7 +229,12 @@ Build the static Vite/TypeScript browser application described in the design. Th
     { "id": 5, "tasks": ["6.2", "7.2", "7.3", "8.1"] },
     { "id": 6, "tasks": ["6.3", "7.4", "7.5", "8.2", "8.3", "9.1", "9.2"] },
     { "id": 7, "tasks": ["8.4", "8.5", "9.3"] },
-    { "id": 8, "tasks": ["9.4"] }
+    { "id": 8, "tasks": ["9.4"] },
+    { "id": 9, "tasks": ["10.1"] },
+    { "id": 10, "tasks": ["10.2"] },
+    { "id": 11, "tasks": ["10.3", "10.4"] },
+    { "id": 12, "tasks": ["10.5", "10.6"] },
+    { "id": 13, "tasks": ["10.7"] }
   ]
 }
 ```

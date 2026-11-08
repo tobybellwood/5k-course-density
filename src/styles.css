@@ -242,10 +242,12 @@ input:focus-visible,
 
 .status-list dd {
   margin: 0;
+  max-width: 12rem;
   color: var(--color-ink);
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .layer-controls {
@@ -266,6 +268,118 @@ input:focus-visible,
   height: 1.25rem;
   flex: 0 0 auto;
   accent-color: var(--color-accent);
+}
+
+.density-settings {
+  display: grid;
+  gap: 0.875rem;
+  min-width: 0;
+  margin: 1.25rem 0 0;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 0.875rem;
+}
+
+.density-settings legend {
+  padding: 0 0.25rem;
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.density-control {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+}
+
+.density-control label {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.density-control select,
+.density-control input {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  background: #ffffff;
+  color: var(--color-ink);
+}
+
+.control-hint {
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+
+.control-notice {
+  min-height: 1.5rem;
+  margin: 0;
+  color: #9a3412;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.density-legend {
+  min-width: 0;
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.875rem;
+}
+
+.density-legend h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.density-legend ul {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.density-legend li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.legend-swatch {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  border: 1px solid rgb(15 23 42 / 30%);
+  border-radius: 50%;
+}
+
+.legend-swatch-low {
+  background: #93c5fd;
+}
+
+.legend-swatch-medium {
+  background: #fbbf24;
+}
+
+.legend-swatch-high {
+  background: #ef4444;
+}
+
+.legend-swatch-warning {
+  background: #991b1b;
+}
+
+.density-legend p {
+  margin: 0.65rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
 }
 
 .notice {
@@ -342,6 +456,15 @@ input:focus-visible,
 
   .panel {
     padding: 0.875rem;
+  }
+
+  .density-settings {
+    padding: 0.75rem;
+  }
+
+  .status-list {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 9rem);
+    gap: 0.5rem 0.75rem;
   }
 
   .map-region h2 {

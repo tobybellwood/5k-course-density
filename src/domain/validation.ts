@@ -3,6 +3,8 @@ import {
   Coordinate,
   CourseTrack,
   DensityCell,
+  DensityCellColour,
+  DensitySettings,
   DomainValidationResult,
   ParticipantPosition,
   ParticipantRecord,
@@ -176,6 +178,10 @@ const REASON_LABELS: Partial<Record<ValidationReason, { readonly one: string; re
   'no-valid-records': { one: 'no valid records', many: 'no valid records' },
   'empty-id': { one: 'empty ID', many: 'empty IDs' },
   'negative-time': { one: 'negative time', many: 'negative times' },
+  'invalid-density-grid-size': { one: 'invalid density grid size', many: 'invalid density grid sizes' },
+  'invalid-density-minimum': { one: 'invalid density minimum', many: 'invalid density minimums' },
+  'invalid-density-warning-threshold': { one: 'invalid density warning threshold', many: 'invalid density warning thresholds' },
+  'invalid-density-session-state': { one: 'invalid density session setting', many: 'invalid density session settings' },
 };
 
 function formatReasonCategory(reason: string, count: number): string {
@@ -443,12 +449,17 @@ export function isValidDensityCell(value: unknown): value is DensityCell {
   const cellX = cell.cellX;
   const cellY = cell.cellY;
   const count = cell.count;
+  const colour = cell.colour;
   return (
     Number.isInteger(cellX) &&
     Number.isInteger(cellY) &&
     Number.isInteger(count) &&
     count !== undefined &&
     count > 0 &&
+    (colour === 'density-low' ||
+      colour === 'density-medium' ||
+      colour === 'density-high' ||
+      colour === 'warning') &&
     isValidCoordinate(cell.coordinate)
   );
 }
@@ -458,6 +469,7 @@ export function createDensityCell(
   cellY: number,
   count: number,
   coordinate: Coordinate,
+  colour: DensityCellColour = 'density-low',
 ): DomainValidationResult<DensityCell> {
   if (!Number.isInteger(cellX) || !Number.isInteger(cellY) || !Number.isInteger(count) || count <= 0) {
     return { ok: false, reason: 'invalid-track-point' };
@@ -465,10 +477,47 @@ export function createDensityCell(
   if (!isValidCoordinate(coordinate)) {
     return { ok: false, reason: 'invalid-track-point' };
   }
+  if (
+    colour !== 'density-low' &&
+    colour !== 'density-medium' &&
+    colour !== 'density-high' &&
+    colour !== 'warning'
+  ) {
+    return { ok: false, reason: 'invalid-track-point' };
+  }
   return {
     ok: true,
-    value: Object.freeze({ cellX, cellY, count, coordinate: Object.freeze({ ...coordinate }) }),
+    value: Object.freeze({
+      cellX,
+      cellY,
+      count,
+      coordinate: Object.freeze({ ...coordinate }),
+      colour,
+    }),
   };
+}
+
+export function isValidDensitySettings(value: unknown): value is DensitySettings {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const settings = value as Partial<DensitySettings>;
+  const minimum = settings.minimumPeoplePerCircle;
+  const warning = settings.warningColourThreshold;
+  return (
+    (settings.gridSizeMeters === 10 ||
+      settings.gridSizeMeters === 25 ||
+      settings.gridSizeMeters === 50 ||
+      settings.gridSizeMeters === 100) &&
+    typeof minimum === 'number' &&
+    Number.isInteger(minimum) &&
+    minimum >= 1 &&
+    (warning === null ||
+      (typeof warning === 'number' &&
+        Number.isInteger(warning) &&
+        typeof minimum === 'number' &&
+        warning > minimum))
+  );
 }
 
 export function isValidValidationSummary(value: unknown): value is ValidationSummary {
@@ -512,6 +561,7 @@ export function isValidApplicationState(value: unknown): value is ApplicationSta
     state.layers !== null &&
     typeof state.layers.markers === 'boolean' &&
     typeof state.layers.density === 'boolean' &&
+    isValidDensitySettings(state.densitySettings) &&
     isValidValidationSummary(state.validation) &&
     (state.snapshot === null || isValidSimulationSnapshot(state.snapshot))
   );
@@ -520,10 +570,18 @@ export function isValidApplicationState(value: unknown): value is ApplicationSta
 export function createApplicationState(
   state: unknown,
 ): DomainValidationResult<ApplicationState> {
-  if (!isValidApplicationState(state)) {
-    const candidate = typeof state === 'object' && state !== null
-      ? state as Partial<ApplicationState>
-      : {};
+  const candidate = typeof state === 'object' && state !== null
+    ? state as Partial<ApplicationState>
+    : {};
+  // Keep pre-settings state fixtures and callers compatible while every
+  // returned ApplicationState carries the validated settings model.
+  const candidateWithDefaults = {
+    ...candidate,
+    densitySettings: candidate.densitySettings === undefined
+      ? { gridSizeMeters: 25 as const, minimumPeoplePerCircle: 1, warningColourThreshold: null }
+      : candidate.densitySettings,
+  };
+  if (!isValidApplicationState(candidateWithDefaults)) {
     return {
       ok: false,
       reason: typeof candidate.simulationTimeSeconds === 'number' && candidate.simulationTimeSeconds < 0
@@ -534,9 +592,10 @@ export function createApplicationState(
   return {
     ok: true,
     value: Object.freeze({
-      ...state,
-      participants: Object.freeze([...state.participants]),
-      layers: Object.freeze({ ...state.layers }),
+      ...candidateWithDefaults,
+      participants: Object.freeze([...candidateWithDefaults.participants]),
+      layers: Object.freeze({ ...candidateWithDefaults.layers }),
+      densitySettings: Object.freeze({ ...candidateWithDefaults.densitySettings }),
     }),
   };
 }

@@ -5,3 +5,4 @@ playwright-report/
 test-results/
 .vite/
 *.tsbuildinfo
+results _ *_files/

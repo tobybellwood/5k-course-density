@@ -159,4 +159,152 @@ test.describe('built static course density application', () => {
     await expect(page.locator('#reset-example-button')).toBeVisible();
     await expect(page.locator('#start-playback-button')).toBeEnabled();
   });
+
+  test('exposes accessible density controls with active status and legend guidance', async ({ page }) => {
+    await loadBundledExample(page);
+
+    const gridSize = page.getByLabel('Grid size');
+    const minimumPeople = page.getByLabel('Minimum people per circle');
+    const warningThreshold = page.getByLabel('Warning colour threshold');
+
+    await expect(gridSize).toHaveValue('25');
+    await expect(minimumPeople).toHaveValue('1');
+    await expect(warningThreshold).toHaveValue('disabled');
+    await expect(gridSize).toHaveAttribute('aria-describedby', /density-grid-size-hint/);
+    await expect(minimumPeople).toHaveAttribute('aria-describedby', /density-minimum-hint/);
+    await expect(warningThreshold).toHaveAttribute('aria-describedby', /density-warning-threshold-hint/);
+
+    await expect(page.locator('#density-settings-summary')).toHaveText('25 m grid · minimum 1');
+    await expect(page.locator('#density-warning-state')).toHaveText('Disabled');
+    await expect(page.locator('#density-legend')).toContainText('Low density');
+    await expect(page.locator('#density-legend')).toContainText('Medium density');
+    await expect(page.locator('#density-legend')).toContainText('High density');
+    await expect(page.locator('#density-warning-legend')).toContainText('Warning colour is disabled');
+    await expect(page.locator('#density-filter-legend')).toHaveText(
+      'Cells below the minimum filter of 1 are hidden.',
+    );
+  });
+
+  test('supports keyboard density edits and updates warning and filtered-cell messaging', async ({ page }) => {
+    await loadBundledExample(page);
+
+    const gridSize = page.getByLabel('Grid size');
+    const minimumPeople = page.getByLabel('Minimum people per circle');
+    const warningThreshold = page.getByLabel('Warning colour threshold');
+    const densityPaths = page.locator('#map .leaflet-overlay-pane path');
+
+    await gridSize.focus();
+    await expect(gridSize).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(minimumPeople).toBeFocused();
+    await page.keyboard.press('ArrowUp');
+    await expect(minimumPeople).toHaveValue('2');
+    await page.getByLabel('Grid size').selectOption('50');
+    await expect(page.locator('#density-settings-summary')).toHaveText('50 m grid · minimum 2');
+    await expect(page.locator('#density-filter-legend')).toHaveText(
+      'Cells below the minimum filter of 2 are hidden.',
+    );
+
+    await warningThreshold.selectOption('100');
+    await expect(warningThreshold).toHaveValue('100');
+    await expect(page.locator('#density-warning-state')).toHaveText('100 people');
+    await expect(page.locator('#density-warning-legend')).toContainText(
+      'Warning colour at or above 100 people',
+    );
+
+    await warningThreshold.selectOption('disabled');
+    await minimumPeople.focus();
+    await minimumPeople.fill('100');
+    await expect(minimumPeople).toHaveValue('100');
+    await expect(page.locator('#density-filter-legend')).toHaveText(
+      'Cells below the minimum filter of 100 are hidden.',
+    );
+    await expect(densityPaths).toHaveCount(1);
+  });
+
+  test('changes density settings while paused and running without resetting playback', async ({ page }) => {
+    await loadBundledExample(page);
+
+    await page.locator('#start-playback-button').click();
+    await expect(page.locator('#simulation-time')).not.toHaveText('0:00', { timeout: 5_000 });
+    await page.locator('#pause-playback-button').click();
+    await expect(page.locator('#playback-state')).toHaveText('Paused');
+
+    const pausedTime = await page.locator('#simulation-time').textContent();
+    await page.getByLabel('Grid size').selectOption('50');
+    await expect(page.locator('#density-settings-summary')).toHaveText('50 m grid · minimum 1');
+    await expect(page.locator('#playback-state')).toHaveText('Paused');
+    await expect(page.locator('#simulation-time')).toHaveText(pausedTime ?? '');
+
+    await page.locator('#start-playback-button').click();
+    await expect(page.locator('#playback-state')).toHaveText('Running');
+    await expect(page.locator('#simulation-time')).not.toHaveText(pausedTime ?? '', { timeout: 5_000 });
+
+    const stateImmediatelyAfterDensityEdit = await page.evaluate(() => {
+      const control = document.querySelector<HTMLSelectElement>('#density-grid-size');
+      if (control === null) {
+        throw new Error('Density grid control is missing');
+      }
+      control.value = '100';
+      control.dispatchEvent(new Event('change', { bubbles: true }));
+      return {
+        simulationTime: document.querySelector<HTMLElement>('#simulation-time')?.textContent ?? '',
+        playbackState: document.querySelector<HTMLElement>('#playback-state')?.textContent ?? '',
+        densitySummary: document.querySelector<HTMLElement>('#density-settings-summary')?.textContent ?? '',
+      };
+    });
+
+    expect(stateImmediatelyAfterDensityEdit.simulationTime).not.toBe('0:00');
+    expect(stateImmediatelyAfterDensityEdit.playbackState).toBe('Running');
+    expect(stateImmediatelyAfterDensityEdit.densitySummary).toBe('100 m grid · minimum 1');
+  });
+
+  test('keeps density controls, legend, and map usable at a narrow viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await loadBundledExample(page);
+
+    const layout = await page.evaluate(() => ({
+      documentWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
+      controlsWidth: document.querySelector<HTMLElement>('#visualization-controls')?.getBoundingClientRect().width ?? 0,
+      legendWidth: document.querySelector<HTMLElement>('#density-legend')?.getBoundingClientRect().width ?? 0,
+      mapWidth: document.querySelector<HTMLElement>('#map')?.getBoundingClientRect().width ?? 0,
+    }));
+
+    expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+    expect(layout.controlsWidth).toBeGreaterThan(0);
+    expect(layout.legendWidth).toBeGreaterThan(0);
+    expect(layout.mapWidth).toBeGreaterThan(0);
+    await expect(page.getByLabel('Grid size')).toBeVisible();
+    await expect(page.getByLabel('Minimum people per circle')).toBeVisible();
+    await expect(page.getByLabel('Warning colour threshold')).toBeVisible();
+    await expect(page.locator('#density-legend')).toBeVisible();
+    await expect(page.locator('#start-playback-button')).toBeVisible();
+  });
+
+  test('restores density defaults in a fresh browser context', async ({ browser }) => {
+    const configuredContext = await browser.newContext();
+    try {
+      const configuredPage = await configuredContext.newPage();
+      await loadBundledExample(configuredPage);
+      await configuredPage.getByLabel('Grid size').selectOption('100');
+      await configuredPage.getByLabel('Minimum people per circle').fill('2');
+      await configuredPage.getByLabel('Warning colour threshold').selectOption('5');
+      await expect(configuredPage.locator('#density-settings-summary')).toHaveText('100 m grid · minimum 2');
+      await expect(configuredPage.locator('#density-warning-state')).toHaveText('5 people');
+    } finally {
+      await configuredContext.close();
+    }
+
+    const freshContext = await browser.newContext();
+    try {
+      const freshPage = await freshContext.newPage();
+      await loadBundledExample(freshPage);
+      await expect(freshPage.locator('#density-settings-summary')).toHaveText('25 m grid · minimum 1');
+      await expect(freshPage.locator('#density-warning-state')).toHaveText('Disabled');
+      await expect(freshPage.getByLabel('Warning colour threshold')).toHaveValue('disabled');
+    } finally {
+      await freshContext.close();
+    }
+  });
 });

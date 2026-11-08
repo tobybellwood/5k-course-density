@@ -16,6 +16,8 @@ The design keeps all domain calculations independent of the map and DOM. This ma
 - Simulate all valid participants with a constant-pace model.
 - Render the route, individual participant markers, and an aggregate density layer together.
 - Provide deterministic playback controls at exactly 60 simulated seconds per real second.
+- Expose density Grid Size, Minimum People-per-Circle Filter, and optional Warning Colour Threshold settings with immediate updates.
+- Keep density settings in the current browser session only and preserve the existing visualization defaults.
 - Keep parsing and simulation usable in tests without Leaflet or browser timing APIs.
 
 ### Non-goals
@@ -100,12 +102,15 @@ interface ApplicationState {
   simulationTimeSeconds: number;
   playback: 'running' | 'paused' | 'complete';
   layers: { markers: boolean; density: boolean };
+  densitySettings: DensitySettings;
   validation: ValidationSummary;
   snapshot: SimulationSnapshot | null;
 }
 ```
 
-A successful course or participant replacement commits only after parsing and validation complete. The commit resets simulation time to zero, recomputes the total duration and snapshot, and requests one render. A failed replacement returns a validation update while leaving the corresponding prior input and all derived data unchanged.
+A successful course or participant replacement commits only after parsing and validation complete. The commit resets simulation time to zero, recomputes the total duration and snapshot, and requests one render. A failed replacement returns a validation update while leaving the corresponding prior input and all derived data unchanged. A valid density-setting change is a separate derived-state update: it recomputes density from the current snapshot, preserves simulation time, playback state, and participant positions, and requests one render. Invalid settings update validation notices without replacing the active settings.
+
+Density settings are initialized to a 25-meter Grid Size, a Minimum People-per-Circle Filter of 1, and no Warning Colour Threshold. The controller restores valid settings from browser-session storage when available, validates the restored values, and falls back to defaults if storage is unavailable or contains invalid data. It does not use persistent storage across browser sessions.
 
 ## Components and Interfaces
 
@@ -116,6 +121,7 @@ A successful course or participant replacement commits only after parsing and va
 - Exposes reset-to-example behavior by loading the bundled sources again.
 - Converts parser results into transactional state commits.
 - Enables playback only when both a valid course and at least one participant exist.
+- Validates density-setting edits, persists accepted settings for the current browser session, and recomputes density immediately without resetting playback or participant positions.
 - Sends one `SimulationSnapshot` to both map layer builders for every time change.
 
 ### `GpxParser`
@@ -164,14 +170,16 @@ A successful course or participant replacement commits only after parsing and va
 - Fits the viewport to route bounds after a successful course commit.
 - Maintains separate route, marker, density, and optional basemap layer groups.
 - Replaces marker and density contents from the same snapshot rather than incrementally deriving one layer from the other.
+- Accepts the active Density Settings for density rendering and can replace only the density group when settings change, leaving route and marker layers untouched.
 - Attaches a popup to each marker with participant name, finish duration, and current simulation time.
 - Applies visibility toggles without changing application state outside `layers`.
 
 ### `domView`
 
 - Binds GPX and HTML file inputs, playback buttons, reset button, layer checkboxes, status fields, and notice region.
-- Displays simulation time, total duration, playback state, valid participant count, excluded-row summary, and notices.
-- Sets `aria-live="polite"` on the notice and status regions.
+- Displays simulation time, total duration, playback state, valid participant count, excluded-row summary, active density settings, legend state, and notices.
+- Sets `aria-live="polite"` on the notice, status, and density-settings summary regions.
+- Gives every density control an explicit label, keyboard operation, associated validation message, and current-value text; the warning threshold exposes a keyboard-selectable disabled state.
 - Disables start/pause/reset playback controls when required input is missing; reset-to-example remains available.
 - Never builds user-provided names through `innerHTML`; popup and status values are escaped or assigned through text nodes.
 
@@ -206,6 +214,20 @@ type SimulationSnapshot = {
   positions: ParticipantPosition[];
 };
 
+type DensitySettings = {
+  gridSizeMeters: 10 | 25 | 50 | 100;
+  minimumPeoplePerCircle: number;
+  warningColourThreshold: number | null;
+};
+
+type DensityCell = {
+  cellX: number;
+  cellY: number;
+  center: Coordinate;
+  count: number;
+  colour: 'density-low' | 'density-medium' | 'density-high' | 'warning';
+};
+
 type ValidationReason =
   | 'malformed-gpx'
   | 'insufficient-track-points'
@@ -215,7 +237,11 @@ type ValidationReason =
   | 'non-positive-duration'
   | 'unsupported-file-type'
   | 'file-read-failure'
-  | 'no-valid-records';
+  | 'no-valid-records'
+  | 'invalid-density-grid-size'
+  | 'invalid-density-minimum'
+  | 'invalid-density-warning-threshold'
+  | 'invalid-density-session-state';
 
 type ValidationSummary = {
   notices: string[];
@@ -237,7 +263,10 @@ function parseDuration(value: string):
   | { ok: true; seconds: number }
   | { ok: false; reason: 'invalid-duration' | 'non-positive-duration' };
 function simulate(course: CourseTrack, records: ParticipantRecord[], timeSeconds: number): SimulationSnapshot;
-function aggregateDensity(positions: ParticipantPosition[], gridSizeMeters: number): DensityCell[];
+function validateDensitySettings(input: unknown, current: DensitySettings):
+  | { ok: true; settings: DensitySettings }
+  | { ok: false; reason: 'invalid-density-grid-size' | 'invalid-density-minimum' | 'invalid-density-warning-threshold' };
+function aggregateDensity(positions: ParticipantPosition[], settings: DensitySettings, courseCenter: Coordinate): DensityCell[];
 ```
 
 Participant IDs should be stable within one parsed result set. Use the normalized row index plus a collision suffix when names repeat. Names remain display values and are not used as unique keys.
@@ -275,11 +304,15 @@ Use a deterministic geographic grid in meters rather than a pixel-dependent scre
 ```text
 x = earthRadius * radians(lon - centerLon) * cos(radians(centerLat))
 y = earthRadius * radians(lat - centerLat)
-cellX = floor(x / gridSizeMeters)
-cellY = floor(y / gridSizeMeters)
+cellX = floor(x / settings.gridSizeMeters)
+cellY = floor(y / settings.gridSizeMeters)
 ```
 
-The default `gridSizeMeters` is 25, configurable as a view constant. Group each current participant coordinate by `(cellX, cellY)` and count positions per cell. Convert cell centers back to latitude/longitude for Leaflet circle rendering. The density layer uses a color/opacity scale based on the maximum current cell count. A `L.circle` per non-empty cell is sufficient for the likely scale of a parkrun result set and keeps the implementation dependency-free beyond Leaflet.
+Validate settings before aggregation. Supported grid sizes are exactly 10, 25, 50, and 100 meters. `minimumPeoplePerCircle` is an integer at least 1. `warningColourThreshold` is either `null` or an integer strictly greater than `minimumPeoplePerCircle`. Invalid edits do not reach the aggregation function.
+
+Group each current participant coordinate by `(cellX, cellY)` and count positions per cell. Apply the minimum filter after counting: retain counts greater than or equal to `minimumPeoplePerCircle`, and omit lower counts. Convert retained cell centers back to latitude/longitude for Leaflet circle rendering. The normal density colour is selected deterministically from the retained count relative to the current retained maximum using fixed low, medium, and high bands. When a warning threshold is enabled, counts greater than or equal to that threshold use the warning colour before normal-band colouring; counts below the threshold retain the normal colour. With no enabled threshold, no cell uses the warning colour. This makes threshold equality an explicit warning boundary.
+
+The default `gridSizeMeters` is 25, the default minimum is 1, and the default warning threshold is `null`, preserving current behavior. A `L.circle` per retained cell is sufficient for the likely scale of a parkrun result set and keeps the implementation dependency-free beyond Leaflet.
 
 ### Playback timing
 
@@ -303,6 +336,8 @@ Publish one snapshot after each update. The controller stops at the terminal tim
 6. A failed replacement updates only validation notices and preserves the prior input and snapshot.
 7. Each playback tick calls `SimulationEngine`, then sends the resulting snapshot to `LeafletMapView.renderSnapshot` and `domView.renderStatus`.
 8. Marker and density builders consume the same snapshot object. Layer visibility is applied after both are built and does not trigger simulation.
+9. A valid density-setting event validates and stores the new settings, recomputes only the density render model from the current snapshot, and updates the map, legend, and status synchronously without invoking playback reset or advancing the clock.
+10. The settings store uses browser-session storage for the validated settings object. Read failures, malformed stored values, or values that violate the cross-field threshold rule produce a notice and restore defaults; no persistent storage API is used.
 
 ## Error Handling
 
@@ -314,6 +349,9 @@ Publish one snapshot after each update. The controller stops at the terminal tim
 - Clear transient replacement errors after the next successful replacement, but retain a compact validation summary for excluded rows in the current valid result set.
 - Never allow invalid numeric coordinates, NaN durations, negative time, or an empty marker ID into the domain state.
 - If Leaflet cannot initialize, show a visible map-initialization notice while leaving parser/status output available; this is a view failure, not a reason to discard valid parsed data.
+- Reject unsupported density grid sizes, non-integer minimum filters, non-integer warning thresholds, and warning thresholds less than or equal to the active minimum. Keep the previous valid setting and explain the accepted range or relationship in the notice.
+- Treat a disabled warning threshold as a valid explicit state. If session storage is unavailable or contains invalid density settings, use the documented defaults and display a non-blocking notice.
+- Keep density controls usable at narrow widths; validation notices and legend text must remain readable without obscuring playback controls or the map.
 
 ## UI and Interaction Details
 
@@ -324,7 +362,9 @@ The page has a header, a control/status panel, and a map region. The control pan
 - `Start`, `Pause`, and `Reset playback` buttons.
 - `Reset to built-in example` button.
 - Marker and density layer checkboxes, checked by default.
-- Current time, total time, playback state, and participant count.
+- Density settings controls: a labeled select for Grid Size with 10 m, 25 m, 50 m, and 100 m options; a labeled numeric input for Minimum People-per-Circle Filter with a minimum of 1; and a labeled numeric input or select for Warning Colour Threshold with an explicit `Disabled` option.
+- Current time, total time, playback state, participant count, active density settings, and warning-threshold state.
+- A density legend that labels the normal low/medium/high colours, identifies the warning colour when enabled, and states that cells below the minimum filter are hidden.
 - Validation summary and an `aria-live` notice region.
 
 The map always shows the route when a valid course exists. Markers and density are both visible by default when valid participants exist. A selected marker popup reads from its own participant record and the current snapshot time, so it remains accurate after playback updates.
@@ -344,6 +384,10 @@ Cover:
 - Start from a paused non-zero time, pause without changes, reset to zero, and complete at the final time.
 - Marker popup includes display name, finish duration, and current simulation time.
 - Route fit, simultaneous default layers, and replacement reset are tested through the Leaflet adapter with a mocked map.
+- Density settings initialize to 25 m, minimum 1, and disabled warning threshold; valid edits apply immediately, invalid edits retain the prior value, and session restoration does not cross a new browser session.
+- Warning threshold equality uses the warning colour, values below the threshold use normal colours, and the threshold validator rejects values equal to or below the minimum filter.
+- Playback time, playback state, and participant positions remain unchanged when density settings change while paused or running.
+- Density controls, status text, legend labels, keyboard access, narrow layouts, and browser-session behavior are covered by browser integration tests.
 
 ### Property tests
 
@@ -427,7 +471,30 @@ For any collection of excluded result rows with reason categories, the validatio
 
 **Validates: Requirements 5.3**
 
-## Acceptance-Criteria Test Mapping
+### Property 12: Density settings validation preserves the cross-field invariant
+
+For any candidate density settings, validation SHALL accept the candidate only when the Grid Size is one of 10, 25, 50, or 100 meters, the Minimum People-per-Circle Filter is an integer at least 1, and the Warning Colour Threshold is disabled or an integer strictly greater than the minimum filter; invalid candidates SHALL leave the current valid settings unchanged.
+
+**Validates: Requirements 6.2, 6.3, 6.4**
+
+### Property 13: Minimum filter uses inclusive count boundaries
+
+For any participant-position collection, positive grid size, and minimum filter, every retained density cell SHALL have a count greater than or equal to the filter, every omitted cell SHALL have a count less than the filter, and the count at exactly the filter boundary SHALL be retained.
+
+**Validates: Requirements 6.8, 6.9**
+
+### Property 14: Warning threshold uses an inclusive colour boundary
+
+For any valid density settings with an enabled warning threshold and any retained density cell, a count greater than or equal to the threshold SHALL receive the warning colour, while a count below the threshold SHALL receive the deterministic normal density colour.
+
+**Validates: Requirements 6.4, 6.10**
+
+### Property 15: Density aggregation and colouring are deterministic
+
+For any fixed Participant Positions, course center, and valid Density Settings, repeated density aggregation SHALL return identical cell coordinates, counts, filtering, colour assignments, and ordering.
+
+**Validates: Requirements 6.8, 6.9, 6.10**
+
 
 The remaining acceptance criteria are deliberately covered by example, edge-case, integration, or smoke tests rather than universal properties:
 
@@ -438,6 +505,9 @@ The remaining acceptance criteria are deliberately covered by example, edge-case
 - Route fitting, simultaneous default layers, and popup content: Leaflet integration tests for 4.1, 4.3, and 4.5.
 - Unsupported or unreadable file notices: edge-case tests for 5.2.
 - Browser-only operation: static build smoke test for 5.5.
+- Density setting defaults, explicit disabled threshold, valid-option controls, live updates without playback reset, and session-only restoration: unit and browser integration tests for 6.1, 6.2, 6.5, and 6.6.
+- Density setting validation and deterministic filter/colour boundaries: property tests for 6.3, 6.4, and 6.8 through 6.10, with example tests for invalid input notices.
+- Accessible controls, active-setting status, legend behavior, keyboard operation, responsive layout, and browser behavior: browser integration tests for 6.7.
 
 This split prevents external map behavior and one-time configuration checks from being mistaken for property-based tests while retaining direct coverage for every acceptance criterion.
 

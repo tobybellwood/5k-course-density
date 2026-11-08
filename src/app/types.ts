@@ -36,11 +36,52 @@ export type SimulationSnapshot = {
   readonly positions: readonly ParticipantPosition[];
 };
 
+export type DensityGridSize = 10 | 25 | 50 | 100;
+
+export type DensitySettings = {
+  readonly gridSizeMeters: DensityGridSize;
+  readonly minimumPeoplePerCircle: number;
+  readonly warningColourThreshold: number | null;
+};
+
+export type DensitySettingsValidationReason =
+  | 'invalid-density-grid-size'
+  | 'invalid-density-minimum'
+  | 'invalid-density-warning-threshold'
+  | 'invalid-density-session-state';
+
+export type DensitySettingsValidationSuccess = {
+  readonly ok: true;
+  readonly settings: DensitySettings;
+};
+
+export type DensitySettingsValidationFailure = {
+  readonly ok: false;
+  readonly settings: DensitySettings;
+  readonly reason: DensitySettingsValidationReason;
+  readonly notice: string;
+  readonly validation: ValidationSummary;
+};
+
+export type DensitySettingsValidationResult =
+  | DensitySettingsValidationSuccess
+  | DensitySettingsValidationFailure;
+
+export type DensityCellColour =
+  | 'density-low'
+  | 'density-medium'
+  | 'density-high'
+  | 'warning';
+
+/** Compatibility alias for callers that use the US spelling. */
+export type DensityCellColor = DensityCellColour;
+
 export type DensityCell = {
   readonly cellX: number;
   readonly cellY: number;
   readonly count: number;
   readonly coordinate: Coordinate;
+  readonly colour: DensityCellColour;
 };
 
 export type MarkerDescriptor = ParticipantPosition & {
@@ -78,7 +119,11 @@ export type ValidationReason =
   | 'file-read-failure'
   | 'no-valid-records'
   | 'empty-id'
-  | 'negative-time';
+  | 'negative-time'
+  | 'invalid-density-grid-size'
+  | 'invalid-density-minimum'
+  | 'invalid-density-warning-threshold'
+  | 'invalid-density-session-state';
 
 export type ValidationSummary = {
   readonly notices: readonly string[];
@@ -133,6 +178,7 @@ export interface ApplicationState {
     readonly markers: boolean;
     readonly density: boolean;
   };
+  readonly densitySettings: DensitySettings;
   readonly validation: ValidationSummary;
   readonly snapshot: SimulationSnapshot | null;
 }

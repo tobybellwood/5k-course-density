@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type {
   CourseTrack,
@@ -17,6 +17,7 @@ import {
   emptyValidationSummary,
 } from '../domain/validation';
 import { simulate } from '../domain/simulation';
+import { buildMarkerDescriptors } from '../map/renderModels';
 
 function courseAt(latitude: number): CourseTrack {
   const result = createCourseTrack(
@@ -134,6 +135,53 @@ describe('AppController state transitions', () => {
     expect(afterParticipantReplacement.snapshot).not.toBe(previousSnapshot);
     expect(afterParticipantReplacement.snapshot?.positions).toHaveLength(2);
     expect(afterParticipantReplacement.snapshot?.positions.every((position) => position.routeFraction === 0)).toBe(true);
+  });
+
+  it('updates density settings without replacing playback or snapshot rendering', () => {
+    const course = courseAt(51);
+    const participants = [
+      participant('runner-1', 'Alex Runner', 60),
+      participant('runner-2', 'Sam Runner', 120),
+    ];
+    const mapView = {
+      renderSnapshotOrClear: vi.fn(),
+      renderDensity: vi.fn(),
+      syncLayerVisibility: vi.fn(),
+    };
+    const controller = new AppController({ mapView });
+    controller.loadInitial(success(course), success(participants));
+    controller.updateSnapshot(simulate(course, participants, 30));
+    controller.setPlayback('running');
+    const before = controller.state;
+    mapView.renderSnapshotOrClear.mockClear();
+    mapView.renderDensity.mockClear();
+
+    const updated = controller.updateDensitySettings({
+      gridSizeMeters: 50,
+      minimumPeoplePerCircle: 2,
+      warningColourThreshold: 3,
+    });
+
+    expect(updated.densitySettings).toEqual({
+      gridSizeMeters: 50,
+      minimumPeoplePerCircle: 2,
+      warningColourThreshold: 3,
+    });
+    expect(updated.simulationTimeSeconds).toBe(before.simulationTimeSeconds);
+    expect(updated.playback).toBe('running');
+    expect(updated.snapshot).toBe(before.snapshot);
+    expect(updated.snapshot?.positions).toBe(before.snapshot?.positions);
+    expect(mapView.renderSnapshotOrClear).not.toHaveBeenCalled();
+    expect(mapView.renderDensity).toHaveBeenCalledTimes(1);
+    expect(mapView.renderDensity).toHaveBeenCalledWith(before.snapshot, updated.densitySettings);
+
+    const invalid = controller.updateDensitySettings({ minimumPeoplePerCircle: 0 });
+    expect(invalid.densitySettings).toEqual(updated.densitySettings);
+    expect(invalid.snapshot).toBe(updated.snapshot);
+    expect(invalid.simulationTimeSeconds).toBe(updated.simulationTimeSeconds);
+    expect(invalid.playback).toBe(updated.playback);
+    expect(invalid.validation.reasonCounts['invalid-density-minimum']).toBe(1);
+    expect(mapView.renderDensity).toHaveBeenCalledTimes(1);
   });
 
   it('keeps playback unavailable while either required input is missing', () => {
@@ -254,5 +302,99 @@ describe('InputCoordinator state transitions', () => {
       lat: exampleCourse.points[0].lat,
       lon: exampleCourse.points[0].lon,
     });
+  });
+});
+
+
+describe('density setting state updates', () => {
+  it('applies each supported grid size immediately while changing only density rendering', () => {
+    const course = courseAt(51);
+    const participants = [
+      participant('runner-1', 'Alex Runner', 60),
+      participant('runner-2', 'Sam Runner', 120),
+    ];
+    const mapView = {
+      renderSnapshotOrClear: vi.fn(),
+      renderDensity: vi.fn(),
+      syncLayerVisibility: vi.fn(),
+    };
+    const statusView = { renderStatus: vi.fn() };
+    const controller = new AppController({ mapView, statusView });
+    controller.loadInitial(success(course), success(participants));
+    controller.updateSnapshot(simulate(course, participants, 45));
+    controller.setPlayback('running');
+
+    const before = controller.state;
+    if (before.snapshot === null) {
+      throw new Error('Expected a simulation snapshot for density update coverage');
+    }
+    const priorMarkers = buildMarkerDescriptors(before.snapshot);
+    mapView.renderSnapshotOrClear.mockClear();
+    mapView.renderDensity.mockClear();
+    mapView.syncLayerVisibility.mockClear();
+    statusView.renderStatus.mockClear();
+
+    for (const gridSizeMeters of [10, 25, 50, 100] as const) {
+      const updated = controller.updateDensitySettings({ gridSizeMeters });
+
+      expect(updated.densitySettings.gridSizeMeters).toBe(gridSizeMeters);
+      expect(updated.simulationTimeSeconds).toBe(before.simulationTimeSeconds);
+      expect(updated.playback).toBe('running');
+      expect(updated.snapshot).toBe(before.snapshot);
+      const updatedSnapshot = updated.snapshot;
+      if (updatedSnapshot === null) {
+        throw new Error('Density updates must preserve the simulation snapshot');
+      }
+      expect(updatedSnapshot.positions).toEqual(before.snapshot.positions);
+      expect(buildMarkerDescriptors(updatedSnapshot)).toEqual(priorMarkers);
+      expect(mapView.renderSnapshotOrClear).not.toHaveBeenCalled();
+      expect(mapView.syncLayerVisibility).not.toHaveBeenCalled();
+      expect(mapView.renderDensity).toHaveBeenLastCalledWith(
+        before.snapshot,
+        updated.densitySettings,
+      );
+      expect(statusView.renderStatus).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          simulationTimeSeconds: before.simulationTimeSeconds,
+          playback: 'running',
+          densitySettings: updated.densitySettings,
+        }),
+      );
+    }
+
+    expect(mapView.renderDensity).toHaveBeenCalledTimes(4);
+    expect(statusView.renderStatus).toHaveBeenCalledTimes(4);
+  });
+
+  it('enables and explicitly disables the warning threshold without changing the snapshot', () => {
+    const course = courseAt(51);
+    const participants = [participant('runner', 'Runner', 90)];
+    const mapView = {
+      renderSnapshotOrClear: vi.fn(),
+      renderDensity: vi.fn(),
+      syncLayerVisibility: vi.fn(),
+    };
+    const controller = new AppController({ mapView });
+    controller.loadInitial(success(course), success(participants));
+    controller.updateSnapshot(simulate(course, participants, 20));
+    controller.setPlayback('running');
+    const before = controller.state;
+    mapView.renderSnapshotOrClear.mockClear();
+    mapView.renderDensity.mockClear();
+
+    const enabled = controller.updateDensitySettings({ warningColourThreshold: 4 });
+    const disabled = controller.updateDensitySettings({ warningColourThreshold: null });
+
+    expect(enabled.densitySettings.warningColourThreshold).toBe(4);
+    expect(disabled.densitySettings.warningColourThreshold).toBeNull();
+    expect(disabled.simulationTimeSeconds).toBe(before.simulationTimeSeconds);
+    expect(disabled.playback).toBe('running');
+    expect(disabled.snapshot).toBe(before.snapshot);
+    expect(mapView.renderSnapshotOrClear).not.toHaveBeenCalled();
+    expect(mapView.renderDensity).toHaveBeenCalledTimes(2);
+    expect(mapView.renderDensity).toHaveBeenLastCalledWith(
+      before.snapshot,
+      disabled.densitySettings,
+    );
   });
 });

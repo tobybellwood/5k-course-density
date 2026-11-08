@@ -1,8 +1,10 @@
 import type {
   ApplicationState,
+  DensitySettings,
   ValidationSummary,
 } from './types';
 import type { PlaybackStatusViewModel } from './viewInterfaces';
+import { updateDensitySettings, DEFAULT_DENSITY_SETTINGS } from '../domain/densitySettings';
 import { formatValidationSummary } from '../domain/validation';
 
 export type DomViewHandlers = {
@@ -14,9 +16,10 @@ export type DomViewHandlers = {
   readonly onResetExample?: () => void | Promise<void>;
   readonly onMarkersVisibilityChange?: (visible: boolean) => void;
   readonly onDensityVisibilityChange?: (visible: boolean) => void;
-  /** Preferred aliases used by the application entrypoint. */
   readonly onMarkersVisibilityChanged?: (visible: boolean) => void;
   readonly onDensityVisibilityChanged?: (visible: boolean) => void;
+  /** Called after a density edit passes view-level validation. */
+  readonly onDensitySettingsChanged?: (settings: DensitySettings) => void;
 };
 
 export type DomViewOptions = {
@@ -33,6 +36,14 @@ export type DomViewElements = {
   readonly resetPlaybackButton: HTMLButtonElement;
   readonly markersLayerToggle: HTMLInputElement;
   readonly densityLayerToggle: HTMLInputElement;
+  readonly densityGridSize: HTMLSelectElement;
+  readonly densityMinimum: HTMLInputElement;
+  readonly densityWarningThreshold: HTMLSelectElement;
+  readonly densitySettingsNotice: HTMLElement;
+  readonly densitySettingsSummary: HTMLElement;
+  readonly densityWarningState: HTMLElement;
+  readonly densityWarningLegend: HTMLElement;
+  readonly densityFilterLegend: HTMLElement;
   readonly status: HTMLElement;
   readonly simulationTime: HTMLElement;
   readonly totalDuration: HTMLElement;
@@ -59,6 +70,19 @@ const DEFAULT_PLAYBACK_STATE_LABELS: Record<ApplicationState['playback'], string
   complete: 'Complete',
 };
 
+function formatWarningThreshold(threshold: number | null): string {
+  return threshold === null ? 'Disabled' : `${threshold} people`;
+}
+
+function formatDensitySettingsSummary(settings: DensitySettings): string {
+  return `${settings.gridSizeMeters} m grid · minimum ${settings.minimumPeoplePerCircle}`;
+}
+
+function readNumber(value: string): number {
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? Number.NaN : Number(trimmed);
+}
+
 function requireElement<T extends HTMLElement>(root: ParentNode, selector: string): T {
   const element = root.querySelector(selector);
   if (element === null) {
@@ -77,6 +101,14 @@ function collectElements(root: ParentNode): DomViewElements {
     resetPlaybackButton: requireElement<HTMLButtonElement>(root, '#reset-playback-button'),
     markersLayerToggle: requireElement<HTMLInputElement>(root, '#markers-layer-toggle'),
     densityLayerToggle: requireElement<HTMLInputElement>(root, '#density-layer-toggle'),
+    densityGridSize: requireElement<HTMLSelectElement>(root, '#density-grid-size'),
+    densityMinimum: requireElement<HTMLInputElement>(root, '#density-minimum'),
+    densityWarningThreshold: requireElement<HTMLSelectElement>(root, '#density-warning-threshold'),
+    densitySettingsNotice: requireElement<HTMLElement>(root, '#density-settings-notice'),
+    densitySettingsSummary: requireElement<HTMLElement>(root, '#density-settings-summary'),
+    densityWarningState: requireElement<HTMLElement>(root, '#density-warning-state'),
+    densityWarningLegend: requireElement<HTMLElement>(root, '#density-warning-legend'),
+    densityFilterLegend: requireElement<HTMLElement>(root, '#density-filter-legend'),
     status: requireElement<HTMLElement>(root, '#status'),
     simulationTime: requireElement<HTMLElement>(root, '#simulation-time'),
     totalDuration: requireElement<HTMLElement>(root, '#total-duration'),
@@ -124,6 +156,7 @@ export const formatDuration = formatSimulationDuration;
 export class DomView {
   public readonly elements: DomViewElements;
   private handlers: DomViewHandlers;
+  private densitySettings: DensitySettings = DEFAULT_DENSITY_SETTINGS;
   private readonly listeners: Array<{
     readonly target: EventTargetWithListener;
     readonly type: string;
@@ -159,6 +192,9 @@ export class DomView {
       resetPlaybackButton,
       markersLayerToggle,
       densityLayerToggle,
+      densityGridSize,
+      densityMinimum,
+      densityWarningThreshold,
     } = this.elements;
 
     this.listen(courseFileInput, 'change', () => {
@@ -184,6 +220,22 @@ export class DomView {
     });
     this.listen(densityLayerToggle, 'change', () => {
       (this.handlers.onDensityVisibilityChanged ?? this.handlers.onDensityVisibilityChange)?.(densityLayerToggle.checked);
+    });
+    this.listen(densityGridSize, 'change', () => {
+      this.handleDensityEdit({ gridSizeMeters: readNumber(densityGridSize.value) as DensitySettings['gridSizeMeters'] });
+    });
+    this.listen(densityMinimum, 'change', () => {
+      this.handleDensityEdit({ minimumPeoplePerCircle: readNumber(densityMinimum.value) });
+    });
+    this.listen(densityMinimum, 'input', () => {
+      this.handleDensityEdit({ minimumPeoplePerCircle: readNumber(densityMinimum.value) });
+    });
+    this.listen(densityWarningThreshold, 'change', () => {
+      this.handleDensityEdit({
+        warningColourThreshold: densityWarningThreshold.value === 'disabled'
+          ? null
+          : readNumber(densityWarningThreshold.value),
+      });
     });
     this.bound = true;
   }
@@ -228,18 +280,64 @@ export class DomView {
     const excludedRowCount = isStatusViewModel
       ? stateOrStatus.excludedRowCount
       : stateOrStatus.validation.excludedRows;
+    const densitySettings = stateOrStatus.densitySettings;
 
     this.elements.simulationTime.textContent = formatSimulationDuration(simulationTimeSeconds);
     this.elements.totalDuration.textContent = formatSimulationDuration(totalDurationSeconds);
     this.elements.playbackState.textContent = DEFAULT_PLAYBACK_STATE_LABELS[playback];
     this.elements.participantCount.textContent = String(participantCount);
     this.elements.excludedRowCount.textContent = String(excludedRowCount);
+    this.renderDensitySettings(densitySettings);
 
     if (isStatusViewModel) {
       this.elements.startPlaybackButton.disabled = stateOrStatus.controls.startDisabled;
       this.elements.pausePlaybackButton.disabled = stateOrStatus.controls.pauseDisabled;
       this.elements.resetPlaybackButton.disabled = stateOrStatus.controls.resetDisabled;
     }
+  }
+
+  public renderDensitySettings(settings: DensitySettings): void {
+    this.densitySettings = settings;
+    this.elements.densityGridSize.value = String(settings.gridSizeMeters);
+    this.elements.densityMinimum.value = String(settings.minimumPeoplePerCircle);
+    if (settings.warningColourThreshold !== null
+      && !Array.from(this.elements.densityWarningThreshold.options)
+        .some((option) => option.value === String(settings.warningColourThreshold))) {
+      const option = this.elements.densityWarningThreshold.ownerDocument.createElement('option');
+      option.value = String(settings.warningColourThreshold);
+      option.textContent = `${settings.warningColourThreshold} people`;
+      this.elements.densityWarningThreshold.append(option);
+    }
+    this.elements.densityWarningThreshold.value = settings.warningColourThreshold === null
+      ? 'disabled'
+      : String(settings.warningColourThreshold);
+    this.elements.densitySettingsSummary.textContent = formatDensitySettingsSummary(settings);
+    this.elements.densityWarningState.textContent = formatWarningThreshold(settings.warningColourThreshold);
+    this.elements.densityFilterLegend.textContent =
+      `Cells below the minimum filter of ${settings.minimumPeoplePerCircle} are hidden.`;
+
+    const warningText = settings.warningColourThreshold === null
+      ? 'Warning colour is disabled'
+      : `Warning colour at or above ${settings.warningColourThreshold} people`;
+    const swatch = this.elements.densityWarningLegend.querySelector('.legend-swatch');
+    this.elements.densityWarningLegend.replaceChildren(
+      ...(swatch === null ? [] : [swatch]),
+      document.createTextNode(warningText),
+    );
+  }
+
+  private handleDensityEdit(edit: Partial<DensitySettings>): void {
+    const result = updateDensitySettings(this.densitySettings, edit);
+    if (!result.ok) {
+      this.elements.densitySettingsNotice.textContent = result.notice;
+      this.renderNotice(result.notice);
+      this.renderDensitySettings(result.settings);
+      return;
+    }
+
+    this.elements.densitySettingsNotice.textContent = '';
+    this.renderDensitySettings(result.settings);
+    this.handlers.onDensitySettingsChanged?.(result.settings);
   }
 
   public renderValidation(validation: ValidationSummary): void {

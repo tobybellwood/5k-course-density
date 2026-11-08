@@ -18,11 +18,15 @@
     },
     "7.2 Write render-model property tests.": {
       "status": "passed",
-      "lastRunTimestamp": 1794105818230
+      "lastRunTimestamp": 1794108141594
     },
     "8.2 Write playback clock property tests.": {
       "status": "passed",
       "lastRunTimestamp": 1794105988130
+    },
+    "10.5 Write property tests for settings validation and density boundaries.": {
+      "status": "passed",
+      "lastRunTimestamp": 1794108348531
     }
   },
   "executionHistory": {
@@ -750,6 +754,159 @@
         "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
         "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
         "timestamp": 1794106656592
+      }
+    ],
+    "10.1 Add density settings models, defaults, validation, and browser-session storage.": [
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794107278370
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794107286368
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794107495090
+      }
+    ],
+    "10.2 Update deterministic density aggregation, filtering, and colouring for `DensitySettings`.": [
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794107278441
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794107499041
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794107707899
+      }
+    ],
+    "10.3 Wire settings changes through application state and map rendering without resetting playback.": [
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794107278475
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794107711968
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108022643
+      }
+    ],
+    "10.4 Add accessible density controls, status text, legend, validation notices, and responsive layout support.": [
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794107278508
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794107712040
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108022732
+      }
+    ],
+    "11. Final checkpoint - Ensure all density-setting tests pass": [
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794107278543
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108297445
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108384671
+      }
+    ],
+    "10.5 Write property tests for settings validation and density boundaries.": [
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108035988
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108049435
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108293157
+      }
+    ],
+    "10.6 Write unit tests for defaults, invalid edits, session restoration, and immediate state updates.": [
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108036055
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108049530
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108293241
+      }
+    ],
+    "10.7 Write browser integration tests for accessible controls, status/legend behavior, responsive layout, and playback preservation.": [
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108036155
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108049594
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108293289
+      }
+    ],
+    "10. Implement configurable density settings and live visualization updates": [
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108293383
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108293426
+      },
+      {
+        "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794108293474
       }
     ]
   }

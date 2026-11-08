@@ -18,6 +18,14 @@ function installMarkup(): void {
     <button id="reset-playback-button"></button>
     <input id="markers-layer-toggle" type="checkbox">
     <input id="density-layer-toggle" type="checkbox">
+    <select id="density-grid-size"><option value="10">10 m</option><option value="25">25 m</option><option value="50">50 m</option><option value="100">100 m</option></select>
+    <input id="density-minimum" type="number" value="1">
+    <select id="density-warning-threshold"><option value="disabled">Disabled</option><option value="5">5 people</option></select>
+    <p id="density-settings-notice"></p>
+    <div id="density-settings-summary"></div>
+    <div id="density-warning-state"></div>
+    <li id="density-warning-legend"><span class="legend-swatch"></span></li>
+    <p id="density-filter-legend"></p>
     <div id="status"></div>
     <span id="simulation-time"></span>
     <span id="total-duration"></span>
@@ -78,6 +86,10 @@ describe('DomView', () => {
     expect(document.querySelector('#playback-state')?.textContent).toBe('Paused');
     expect(view.elements.participantCount.textContent).toBe('1');
     expect(view.elements.excludedRowCount.textContent).toBe('2');
+    expect(view.elements.densitySettingsSummary.textContent).toBe('25 m grid · minimum 1');
+    expect(view.elements.densityWarningState.textContent).toBe('Disabled');
+    expect(view.elements.densityFilterLegend.textContent).toContain('minimum filter of 1');
+    expect(document.querySelector('#density-warning-legend')?.textContent).toContain('Warning colour is disabled');
     expect(document.querySelector('#validation-notice')?.textContent).toContain('2 rows excluded');
     expect(document.querySelector('#validation-notice')?.textContent).toContain('The previous course was retained.');
     expect(document.querySelector('#status')?.getAttribute('aria-live')).toBe('polite');
@@ -100,6 +112,7 @@ describe('DomView', () => {
       onResetExample: vi.fn(),
       onMarkersVisibilityChange: vi.fn(),
       onDensityVisibilityChange: vi.fn(),
+      onDensitySettingsChanged: vi.fn(),
     };
     createDomView(document, callbacks);
 
@@ -119,6 +132,15 @@ describe('DomView', () => {
     density.checked = false;
     markers.dispatchEvent(new Event('change'));
     density.dispatchEvent(new Event('change'));
+    const gridSize = document.querySelector('#density-grid-size') as HTMLSelectElement;
+    gridSize.value = '50';
+    gridSize.dispatchEvent(new Event('change'));
+    const minimum = document.querySelector('#density-minimum') as HTMLInputElement;
+    minimum.value = '2';
+    minimum.dispatchEvent(new Event('change'));
+    const warning = document.querySelector('#density-warning-threshold') as HTMLSelectElement;
+    warning.value = '5';
+    warning.dispatchEvent(new Event('change'));
 
     expect(callbacks.onCourseFileSelected).toHaveBeenCalledWith(courseFile);
     expect(callbacks.onResultsFileSelected).toHaveBeenCalledWith(resultsFile);
@@ -128,7 +150,27 @@ describe('DomView', () => {
     expect(callbacks.onResetExample).toHaveBeenCalledOnce();
     expect(callbacks.onMarkersVisibilityChange).toHaveBeenCalledWith(false);
     expect(callbacks.onDensityVisibilityChange).toHaveBeenCalledWith(false);
+    expect(callbacks.onDensitySettingsChanged).toHaveBeenLastCalledWith({
+      gridSizeMeters: 50,
+      minimumPeoplePerCircle: 2,
+      warningColourThreshold: 5,
+    });
   });
+
+  it('retains valid density controls and announces invalid edits', () => {
+    installMarkup();
+    const view = createDomView(document);
+    view.render(availableState());
+
+    const minimum = document.querySelector('#density-minimum') as HTMLInputElement;
+    minimum.value = '1.5';
+    minimum.dispatchEvent(new Event('change'));
+
+    expect(minimum.value).toBe('1');
+    expect(view.elements.densitySettingsNotice.textContent).toContain('whole number');
+    expect(view.elements.validationNotice.textContent).toContain('whole number');
+  });
+
 
   it('disables playback controls when either required input is unavailable', () => {
     installMarkup();
