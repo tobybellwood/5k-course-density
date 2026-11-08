@@ -14,6 +14,23 @@ const localResults = `<!doctype html>
   <tbody><tr><td>Local Runner</td><td>1:23</td></tr></tbody>
 </table>`;
 
+const markerStyleCourse = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="browser-test">
+  <trk><name>Marker style test course</name><trkseg>
+    <trkpt lat="-34.6385" lon="148.02111" />
+    <trkpt lat="-34.6405" lon="148.02111" />
+  </trkseg></trk>
+</gpx>`;
+
+const markerStyleResults = `<!doctype html>
+<table>
+  <thead><tr><th>Name</th><th>Time</th></tr></thead>
+  <tbody>
+    <tr><td>Early Runner</td><td>0:30</td></tr>
+    <tr><td>Longest &amp; <b>Safe</b></td><td>1:00</td></tr>
+  </tbody>
+</table>`;
+
 const invalidCourse = '<gpx><trk><trkseg><trkpt lat="not-a-lat" lon="148.0" /></trkseg></trk></gpx>';
 const invalidResults = '<!doctype html><table><tr><th>Name</th><th>Time</th></tr><tr><td></td><td>1:23</td></tr></table>';
 
@@ -158,6 +175,95 @@ test.describe('built static course density application', () => {
     expect(layout.mapWidth).toBeGreaterThan(0);
     await expect(page.locator('#reset-example-button')).toBeVisible();
     await expect(page.locator('#start-playback-button')).toBeEnabled();
+  });
+
+  test('rerenders marker emphasis during playback while preserving positions, density, state, and safe popups', async ({ page }) => {
+    await loadBundledExample(page);
+
+    await page.locator('#course-file-input').setInputFiles({
+      name: 'marker-style-course.gpx',
+      mimeType: 'application/gpx+xml',
+      buffer: Buffer.from(markerStyleCourse),
+    });
+    await page.locator('#results-file-input').setInputFiles({
+      name: 'marker-style-results.html',
+      mimeType: 'text/html',
+      buffer: Buffer.from(markerStyleResults),
+    });
+    await expect(page.locator('#participant-count')).toHaveText('2');
+    await expect(page.locator('#total-duration')).toHaveText('1:00');
+
+    const markers = page.locator('#map .leaflet-marker-icon');
+    const earlyMarker = markers.nth(0);
+    const longestMarker = markers.nth(1);
+    await expect(markers).toHaveCount(2);
+    await expect(earlyMarker).toHaveAttribute('title', 'Early Runner');
+    await expect(longestMarker).toHaveAttribute('title', 'Longest & Safe');
+    await expect(earlyMarker).toHaveCSS('opacity', '1');
+    await expect(longestMarker).toHaveClass(/course-density-marker--bright-yellow/);
+    await expect(longestMarker).toHaveAttribute('src', /marker-icon/);
+    await expect(longestMarker).toHaveCSS('filter', /brightness/);
+    await expect(longestMarker).toHaveCSS('opacity', '1');
+    const initialMarkerPositions = await markers.evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return [Math.round(rect.left), Math.round(rect.top)];
+      }),
+    );
+    const initialDensityPathCount = await page.locator('#map .leaflet-overlay-pane path').count();
+    expect(initialDensityPathCount).toBe(2);
+
+    await page.locator('#start-playback-button').click();
+    await expect(page.locator('#playback-state')).toHaveText('Running');
+    await expect(earlyMarker).toHaveCSS('opacity', '0.35', { timeout: 5_000 });
+    await expect(longestMarker).toHaveClass(/course-density-marker--bright-yellow/);
+    await expect(longestMarker).toHaveAttribute('src', /marker-icon/);
+    await expect(longestMarker).toHaveCSS('filter', /brightness/);
+    await expect(longestMarker).toHaveCSS('opacity', '1');
+    const laterMarkerPositions = await markers.evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return [Math.round(rect.left), Math.round(rect.top)];
+      }),
+    );
+    expect(laterMarkerPositions).toHaveLength(2);
+    expect(laterMarkerPositions[0]).not.toEqual(laterMarkerPositions[1]);
+    expect(laterMarkerPositions).not.toEqual(initialMarkerPositions);
+    expect(await page.locator('#map .leaflet-overlay-pane path').count()).toBe(3);
+    await expect(page.locator('#markers-layer-toggle')).toBeChecked();
+    await expect(page.locator('#density-layer-toggle')).toBeChecked();
+
+    const runningTime = await page.locator('#simulation-time').textContent();
+    expect(runningTime).not.toBe('0:00');
+    await page.locator('#pause-playback-button').click();
+    await expect(page.locator('#playback-state')).toHaveText('Paused');
+    const pausedTime = await page.locator('#simulation-time').textContent();
+    expect(pausedTime).not.toBe('0:00');
+    const pausedMarkerPositions = await markers.evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return [Math.round(rect.left), Math.round(rect.top)];
+      }),
+    );
+    expect(pausedMarkerPositions).toHaveLength(2);
+    expect(pausedMarkerPositions[0]).not.toEqual(pausedMarkerPositions[1]);
+    await page.waitForTimeout(150);
+    await expect(page.locator('#simulation-time')).toHaveText(pausedTime ?? '');
+    const stablePausedMarkerPositions = await markers.evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return [Math.round(rect.left), Math.round(rect.top)];
+      }),
+    );
+    expect(stablePausedMarkerPositions).toEqual(pausedMarkerPositions);
+
+    await longestMarker.evaluate((marker) => (marker as HTMLElement).click());
+    await expect(page.locator('.leaflet-popup')).toContainText('Participant: Longest & Safe');
+    await expect(page.locator('.leaflet-popup')).toContainText('Finish time: 1:00');
+    await expect(page.locator('.leaflet-popup')).toContainText(`Simulation time: ${pausedTime}`);
+    await expect(page.locator('.leaflet-popup img, .leaflet-popup b')).toHaveCount(0);
+    await expect(page.locator('[id*="marker-style"], [data-marker-style-control]')).toHaveCount(0);
+    await expect(page.getByText(/marker (style|opacity|colour)/i)).toHaveCount(0);
   });
 
   test('exposes accessible density controls with active status and legend guidance', async ({ page }) => {

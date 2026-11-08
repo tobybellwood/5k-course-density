@@ -425,6 +425,11 @@ input:focus-visible,
   line-height: 1.5;
 }
 
+.course-density-marker--bright-yellow {
+  /* Recolour the standard Leaflet pin without changing its silhouette or dimensions. */
+  filter: brightness(0) saturate(100%) invert(89%) sepia(100%) saturate(7495%) hue-rotate(359deg) brightness(106%) contrast(105%);
+}
+
 @media (max-width: 800px) {
   .app-main {
     grid-template-columns: minmax(0, 1fr);

@@ -12,6 +12,7 @@ import {
 } from '../domain/validation';
 import {
   aggregateDensity,
+  buildMarkerDescriptors,
   buildVisualizationRenderModel,
 } from './renderModels';
 
@@ -102,6 +103,204 @@ describe(
           );
           expect(model.density.reduce((total, cell) => total + cell.count, 0))
             .toBe(snapshot.positions.length);
+        }),
+        { numRuns: 200 },
+      );
+    });
+  },
+);
+
+
+type MarkerInput = {
+  readonly displayName: string;
+  readonly finishDurationSeconds: number;
+  readonly routeFraction: number;
+  readonly coordinate: Coordinate;
+};
+
+const markerInputArbitrary: fc.Arbitrary<MarkerInput> = fc.record({
+  displayName: fc.constantFrom(
+    'Runner',
+    'Ada Example',
+    '<img src=x onerror=alert(1)>',
+    'Name & "quoted"',
+  ),
+  finishDurationSeconds: fc.integer({ min: 1, max: 7_200 }),
+  routeFraction: fc.integer({ min: 0, max: 1_000 }).map((value) => value / 1_000),
+  coordinate: coordinateArbitrary,
+});
+
+function snapshotFromMarkerInputs(
+  inputs: readonly MarkerInput[],
+  simulationTimeSeconds: number,
+): SimulationSnapshot {
+  const positions: ParticipantPosition[] = inputs.map((input, index) => {
+    const result = createParticipantPosition(
+      {
+        id: `runner-${index}`,
+        displayName: input.displayName,
+        finishDurationSeconds: input.finishDurationSeconds,
+      },
+      input.routeFraction,
+      input.coordinate,
+    );
+    if (!result.ok) {
+      throw new Error(`Generated position was rejected: ${result.reason}`);
+    }
+    return result.value;
+  });
+
+  const result = createSimulationSnapshot(simulationTimeSeconds, positions);
+  if (!result.ok) {
+    throw new Error(`Generated snapshot was rejected: ${result.reason}`);
+  }
+  return result.value;
+}
+
+const markerInputsArbitrary = fc.array(markerInputArbitrary, { minLength: 1, maxLength: 30 });
+
+const playbackPhaseArbitrary = fc.constantFrom('before', 'at', 'after') as fc.Arbitrary<
+  'before' | 'at' | 'after'
+>;
+
+function snapshotAtLongestFinisherPhase(
+  inputs: readonly MarkerInput[],
+  phase: 'before' | 'at' | 'after',
+): SimulationSnapshot {
+  const greatestFinishDurationSeconds = Math.max(
+    ...inputs.map((input) => input.finishDurationSeconds),
+  );
+  const simulationTimeSeconds = phase === 'before'
+    ? Math.max(0, greatestFinishDurationSeconds - 1)
+    : phase === 'at'
+      ? greatestFinishDurationSeconds
+      : greatestFinishDurationSeconds + 1;
+
+  return snapshotFromMarkerInputs(
+    inputs.map((input) => ({
+      ...input,
+      routeFraction: Math.min(1, simulationTimeSeconds / input.finishDurationSeconds),
+    })),
+    simulationTimeSeconds,
+  );
+}
+
+describe(
+  'Feature: course-density-visualization, Property 16: Marker opacity follows the finish boundary',
+  () => {
+    it('uses opaque unfinished markers and translucent opacity only for non-highlighted finishers', () => {
+      fc.assert(
+        fc.property(markerInputsArbitrary, (inputs) => {
+          const snapshot = snapshotFromMarkerInputs(inputs, 1_000);
+          const greatestFinishDurationSeconds = Math.max(
+            ...inputs.map((input) => input.finishDurationSeconds),
+          );
+          const markers = buildMarkerDescriptors(snapshot);
+
+          markers.forEach((marker, index) => {
+            const input = inputs[index];
+            const expectedOpacity = input.routeFraction < 1 ||
+                input.finishDurationSeconds === greatestFinishDurationSeconds
+              ? 1
+              : 0.35;
+            expect(marker.style.opacity).toBe(expectedOpacity);
+          });
+        }),
+        { numRuns: 200 },
+      );
+    });
+  },
+);
+
+describe(
+  'Feature: course-density-visualization, Property 17: Longest-finisher highlighting covers ties and the full playback',
+  () => {
+    it('highlights every tied longest finisher before, at, and after the finish boundary', () => {
+      fc.assert(
+        fc.property(markerInputsArbitrary, playbackPhaseArbitrary, (inputs, phase) => {
+          const snapshot = snapshotAtLongestFinisherPhase(inputs, phase);
+          const greatestFinishDurationSeconds = Math.max(
+            ...inputs.map((input) => input.finishDurationSeconds),
+          );
+
+          buildMarkerDescriptors(snapshot).forEach((marker) => {
+            if (marker.finishDurationSeconds === greatestFinishDurationSeconds) {
+              expect(marker.style).toEqual({ opacity: 1, colour: 'bright-yellow' });
+            }
+          });
+        }),
+        { numRuns: 200 },
+      );
+    });
+  },
+);
+
+describe(
+  'Feature: course-density-visualization, Property 18: Longest-finisher highlighting takes precedence over finished translucency',
+  () => {
+    it('keeps finished longest participants bright yellow and opaque, including ties', () => {
+      fc.assert(
+        fc.property(markerInputsArbitrary, (inputs) => {
+          const greatestFinishDurationSeconds = Math.max(
+            ...inputs.map((input) => input.finishDurationSeconds),
+          );
+          const snapshot = snapshotFromMarkerInputs(
+            inputs.map((input) => ({
+              ...input,
+              routeFraction: input.finishDurationSeconds === greatestFinishDurationSeconds
+                ? 1
+                : input.routeFraction,
+            })),
+            greatestFinishDurationSeconds + 1,
+          );
+
+          buildMarkerDescriptors(snapshot).forEach((marker) => {
+            if (marker.finishDurationSeconds === greatestFinishDurationSeconds) {
+              expect(marker.style).toEqual({ opacity: 1, colour: 'bright-yellow' });
+            }
+          });
+        }),
+        { numRuns: 200 },
+      );
+    });
+  },
+);
+
+describe(
+  'Feature: course-density-visualization, Property 19: Marker styling is a snapshot-only render transformation',
+  () => {
+    it('changes only marker style while preserving snapshot, density, popup fields, and safe names', () => {
+      fc.assert(
+        fc.property(markerInputsArbitrary, fc.integer({ min: 0, max: 7_200 }), (inputs, time) => {
+          const snapshot = snapshotFromMarkerInputs(inputs, time);
+          const snapshotBeforeDerivation = snapshot.positions.map((position) => ({
+            ...position,
+            coordinate: { ...position.coordinate },
+          }));
+          const center = { lat: REFERENCE_LATITUDE, lon: REFERENCE_LONGITUDE };
+          const expectedDensity = aggregateDensity(snapshot.positions, 25, center);
+          const model = buildVisualizationRenderModel(snapshot, {
+            gridSizeMeters: 25,
+            center,
+          });
+
+          expect(snapshot).toEqual({
+            simulationTimeSeconds: time,
+            positions: snapshotBeforeDerivation,
+          });
+          expect(model.simulationTimeSeconds).toBe(snapshot.simulationTimeSeconds);
+          expect(model.density).toEqual(expectedDensity);
+          expect(model.markers.map(({ id, displayName, finishDurationSeconds, routeFraction, coordinate }) => ({
+            id,
+            displayName,
+            finishDurationSeconds,
+            routeFraction,
+            coordinate,
+          }))).toEqual(snapshot.positions);
+          expect(model.markers.map((marker) => marker.displayName)).toEqual(
+            inputs.map((input) => input.displayName),
+          );
+          expect(model.markers.every((marker) => marker.simulationTimeSeconds === time)).toBe(true);
         }),
         { numRuns: 200 },
       );

@@ -27,6 +27,10 @@
     "10.5 Write property tests for settings validation and density boundaries.": {
       "status": "passed",
       "lastRunTimestamp": 1794108348531
+    },
+    "12.3 Write unit and property tests for marker style boundaries and longest-finisher rules.": {
+      "status": "passed",
+      "lastRunTimestamp": 1794109436937
     }
   },
   "executionHistory": {
@@ -907,6 +911,98 @@
         "executionId": "183b2d0e-a613-4ec4-a048-1d8116574e1a",
         "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
         "timestamp": 1794108293474
+      }
+    ],
+    "12.1 Extend the marker render models and descriptor builder with snapshot-derived style fields.": [
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109064022
+      },
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109072384
+      },
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109139061
+      }
+    ],
+    "12.2 Apply marker styles in the Leaflet adapter without changing popup behavior.": [
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109064086
+      },
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109143544
+      },
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109261834
+      }
+    ],
+    "13. Checkpoint - Ensure all participant-marker styling tests pass": [
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109064119
+      },
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109720958
+      },
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794110039028
+      }
+    ],
+    "12. Implement snapshot-derived participant marker emphasis": [
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109261932
+      }
+    ],
+    "12.3 Write unit and property tests for marker style boundaries and longest-finisher rules.": [
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109266414
+      },
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109270883
+      },
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109716786
+      }
+    ],
+    "12.4 Write mocked-map and browser integration tests for rerendering and unchanged state.": [
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109266473
+      },
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109270946
+      },
+      {
+        "executionId": "40f2905c-063d-452d-a205-5ceb33f68181",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794109716909
       }
     ]
   }

@@ -73,6 +73,10 @@ const leafletState = vi.hoisted(() => {
     }
   }
 
+  class MockDefaultIcon {
+    public constructor(public readonly options: Record<string, unknown>) {}
+  }
+
   const maps: MockMap[] = [];
   const layerGroups: MockLayerGroup[] = [];
   const polylines: unknown[] = [];
@@ -80,6 +84,7 @@ const leafletState = vi.hoisted(() => {
 
   return {
     MockCircle,
+    MockDefaultIcon,
     MockLayerGroup,
     MockMap,
     MockMarker,
@@ -96,6 +101,9 @@ vi.mock('leaflet', () => ({
     const circle = new leafletState.MockCircle(coordinate, options);
     return circle;
   }),
+  Icon: {
+    Default: leafletState.MockDefaultIcon,
+  },
   latLngBounds: vi.fn((southWest: readonly [number, number], northEast: readonly [number, number]) => {
     const value = { northEast, southWest };
     leafletState.bounds.push(value);
@@ -228,10 +236,142 @@ describe('LeafletMapView', () => {
     expect(mockMapForView(view).layers.has(view.densityLayerGroup)).toBe(true);
   });
 
+  it('applies snapshot marker opacity and bright-yellow styling', () => {
+    const view = new LeafletMapView('map', { map: new leafletState.MockMap() as never });
+
+    view.renderSnapshot({
+      simulationTimeSeconds: 900,
+      positions: [
+        {
+          ...createPosition('runner-1', 'Ada Example', { lat: 51.5, lon: -0.1 }, 600),
+          routeFraction: 1,
+        },
+        {
+          ...createPosition('runner-2', 'Ben Example', { lat: 51.501, lon: -0.099 }, 900),
+          routeFraction: 0.5,
+        },
+      ],
+    });
+
+    const markers = mockLayerGroupForView(view.markerLayerGroup).layers as Array<
+      InstanceType<typeof leafletState.MockMarker>
+    >;
+    expect(markers[0].options.opacity).toBe(0.35);
+    expect(markers[0].options.icon).toBeUndefined();
+    expect(markers[1].options.opacity).toBe(1);
+    expect(markers[1].options.icon).toBeInstanceOf(leafletState.MockDefaultIcon);
+    expect(markers[1].options.icon).toEqual(
+      expect.objectContaining({
+        options: { className: 'course-density-marker--bright-yellow' },
+      }),
+    );
+    expect(mockLayerGroupForView(view.densityLayerGroup).layers).not.toHaveLength(0);
+  });
+
+  it('uses the standard highlighted icon for tied longest finishers', () => {
+    const view = new LeafletMapView('map', { map: new leafletState.MockMap() as never });
+
+    view.renderSnapshot({
+      simulationTimeSeconds: 300,
+      positions: [
+        createPosition('runner-1', 'Ada Example', { lat: 51.5, lon: -0.1 }, 900),
+        createPosition('runner-2', 'Ben Example', { lat: 51.501, lon: -0.099 }, 900),
+        createPosition('runner-3', 'Casey Example', { lat: 51.502, lon: -0.098 }, 600),
+      ],
+    });
+
+    const markers = mockLayerGroupForView(view.markerLayerGroup).layers as Array<
+      InstanceType<typeof leafletState.MockMarker>
+    >;
+    expect(markers[0].options.icon).toBeInstanceOf(leafletState.MockDefaultIcon);
+    expect(markers[1].options.icon).toBeInstanceOf(leafletState.MockDefaultIcon);
+    expect(markers[0].options.opacity).toBe(1);
+    expect(markers[1].options.opacity).toBe(1);
+    expect(markers[2].options.icon).toBeUndefined();
+    expect(markers[2].options.opacity).toBe(1);
+  });
+
+  it('rerenders later snapshot styles while preserving snapshot state, density output, popups, and visibility', () => {
+    const view = new LeafletMapView('map', {
+      map: new leafletState.MockMap() as never,
+      layerVisibility: { markers: false, density: true },
+    });
+    const initialSnapshot = createSnapshot();
+    view.renderSnapshot(initialSnapshot);
+    const initialDensity = [
+      ...mockLayerGroupForView(view.densityLayerGroup).layers,
+    ] as Array<InstanceType<typeof leafletState.MockCircle>>;
+    expect(initialDensity).toHaveLength(2);
+
+    const laterSnapshot: SimulationSnapshot = {
+      simulationTimeSeconds: 600,
+      positions: [
+        {
+          ...createPosition(
+            'runner-1',
+            '<img src=x onerror=alert(1)>',
+            { lat: 51.502, lon: -0.098 },
+            600,
+          ),
+          routeFraction: 1,
+        },
+        {
+          ...createPosition(
+            'runner-2',
+            'Longest <b>Finisher</b>',
+            { lat: 51.502, lon: -0.098 },
+            900,
+          ),
+          routeFraction: 0.67,
+        },
+      ],
+    };
+    const laterSnapshotBeforeRender = JSON.stringify(laterSnapshot);
+
+    view.renderSnapshot(laterSnapshot);
+
+    const markers = mockLayerGroupForView(view.markerLayerGroup).layers as Array<
+      InstanceType<typeof leafletState.MockMarker>
+    >;
+    const laterDensity = mockLayerGroupForView(view.densityLayerGroup).layers as Array<
+      InstanceType<typeof leafletState.MockCircle>
+    >;
+    expect(JSON.stringify(laterSnapshot)).toBe(laterSnapshotBeforeRender);
+    expect(markers.map((marker) => marker.coordinate)).toEqual([
+      [51.502, -0.098],
+      [51.502, -0.098],
+    ]);
+    expect(markers[0].options.opacity).toBe(0.35);
+    expect(markers[0].options.icon).toBeUndefined();
+    expect(markers[1].options.opacity).toBe(1);
+    expect(markers[1].options.icon).toBeInstanceOf(leafletState.MockDefaultIcon);
+    expect(markers[1].options.icon).toEqual(
+      expect.objectContaining({
+        options: { className: 'course-density-marker--bright-yellow' },
+      }),
+    );
+    expect(laterDensity).toHaveLength(1);
+    expect(laterDensity).not.toEqual(initialDensity);
+    expect(markers[0].popup?.textContent).toBe(
+      'Participant: <img src=x onerror=alert(1)>Finish time: 10:00Simulation time: 10:00',
+    );
+    expect(markers[0].popup?.querySelector('img')).toBeNull();
+    expect(markers[0].popup?.innerHTML).toContain('&lt;img');
+    expect(markers[1].popup?.textContent).toBe(
+      'Participant: Longest <b>Finisher</b>Finish time: 15:00Simulation time: 10:00',
+    );
+    expect(markers[1].popup?.querySelector('b')).toBeNull();
+    expect(view.isLayerVisible('markers')).toBe(false);
+    expect(view.isLayerVisible('density')).toBe(true);
+    expect(mockMapForView(view).layers.has(view.markerLayerGroup)).toBe(false);
+    expect(mockMapForView(view).layers.has(view.densityLayerGroup)).toBe(true);
+  });
+
   it('renders popup content with participant, finish, and simulation times', () => {
     const marker: MarkerDescriptor = {
       ...createPosition('runner-1', 'Ada Example', { lat: 51.5, lon: -0.1 }, 3_725),
       simulationTimeSeconds: 75,
+      style: { opacity: 1, colour: 'default' },
     };
 
     const popup = createParticipantPopupContent(marker);
@@ -245,6 +385,7 @@ describe('LeafletMapView', () => {
     const marker: MarkerDescriptor = {
       ...createPosition('runner-unsafe', '<img src=x onerror=alert(1)>', { lat: 51.5, lon: -0.1 }, 125),
       simulationTimeSeconds: 10,
+      style: { opacity: 1, colour: 'default' },
     };
 
     const popup = createParticipantPopupContent(marker);

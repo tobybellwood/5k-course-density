@@ -223,13 +223,33 @@ export function aggregateDensity(
   return Object.freeze(cells);
 }
 
+function markerStyleForPosition(
+  position: ParticipantPosition,
+  greatestFinishDurationSeconds: number,
+): MarkerDescriptor['style'] {
+  if (position.finishDurationSeconds === greatestFinishDurationSeconds) {
+    return Object.freeze({ opacity: 1, colour: 'bright-yellow' });
+  }
+
+  return Object.freeze({
+    opacity: position.routeFraction >= 1 ? 0.35 : 1,
+    colour: 'default',
+  });
+}
+
 /**
  * Build one identifiable marker descriptor for every position in a snapshot.
+ * Marker style is derived from the snapshot only and never mutates its positions.
  */
 export function buildMarkerDescriptors(
   snapshot: SimulationSnapshot,
 ): readonly MarkerDescriptor[] {
   assertValidSnapshot(snapshot);
+
+  const greatestFinishDurationSeconds = snapshot.positions.reduce(
+    (greatest, position) => Math.max(greatest, position.finishDurationSeconds),
+    0,
+  );
 
   return Object.freeze(
     snapshot.positions.map((position) =>
@@ -237,6 +257,7 @@ export function buildMarkerDescriptors(
         ...position,
         coordinate: Object.freeze({ ...position.coordinate }),
         simulationTimeSeconds: snapshot.simulationTimeSeconds,
+        style: markerStyleForPosition(position, greatestFinishDurationSeconds),
       }),
     ),
   );

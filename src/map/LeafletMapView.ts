@@ -91,6 +91,18 @@ const DENSITY_COLOURS: Record<DensityCellColour, string> = {
   warning: '#991b1b',
 };
 
+const BRIGHT_YELLOW_MARKER_CLASS = 'course-density-marker--bright-yellow';
+
+function markerIconForStyle(style: MarkerDescriptor['style']): L.Icon | undefined {
+  if (style.colour !== 'bright-yellow') {
+    return undefined;
+  }
+
+  // Keep the standard Leaflet marker silhouette; the class only applies the highlight.
+  // @types/leaflet gives Default an optional iconUrl, unlike the base Icon type.
+  return new L.Icon.Default({ className: BRIGHT_YELLOW_MARKER_CLASS }) as unknown as L.Icon;
+}
+
 function densityStyle(
   colour: DensityCellColour,
   count: number,
@@ -289,9 +301,19 @@ export class LeafletMapView {
   }
 
   private createMarker(markerDescriptor: MarkerDescriptor): L.Marker {
-    const marker = L.marker(coordinateToLatLng(markerDescriptor.coordinate), {
+    const markerOptions: L.MarkerOptions = {
       title: markerDescriptor.displayName,
-    });
+      opacity: markerDescriptor.style.opacity,
+    };
+    const icon = markerIconForStyle(markerDescriptor.style);
+    if (icon !== undefined) {
+      markerOptions.icon = icon;
+    }
+
+    const marker = L.marker(
+      coordinateToLatLng(markerDescriptor.coordinate),
+      markerOptions,
+    );
     marker.bindPopup(createParticipantPopupContent(markerDescriptor));
     return marker;
   }

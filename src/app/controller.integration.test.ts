@@ -57,13 +57,20 @@ const leafletState = vi.hoisted(() => {
     ) {}
   }
 
-  return { MockCircle, MockLayerGroup, MockMap, MockMarker };
+  class MockDefaultIcon {
+    public constructor(public readonly options: Record<string, unknown>) {}
+  }
+
+  return { MockCircle, MockDefaultIcon, MockLayerGroup, MockMap, MockMarker };
 });
 
 vi.mock('leaflet', () => ({
   circle: vi.fn((coordinate: readonly [number, number], options: Record<string, unknown>) => (
     new leafletState.MockCircle(coordinate, options)
   )),
+  Icon: {
+    Default: leafletState.MockDefaultIcon,
+  },
   latLngBounds: vi.fn((southWest: readonly [number, number], northEast: readonly [number, number]) => ({
     northEast,
     southWest,

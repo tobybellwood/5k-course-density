@@ -84,8 +84,14 @@ export type DensityCell = {
   readonly colour: DensityCellColour;
 };
 
+export type MarkerStyle = {
+  readonly opacity: 1 | 0.35;
+  readonly colour: 'default' | 'bright-yellow';
+};
+
 export type MarkerDescriptor = ParticipantPosition & {
   readonly simulationTimeSeconds: number;
+  readonly style: MarkerStyle;
 };
 
 export type MarkerRenderModel = {

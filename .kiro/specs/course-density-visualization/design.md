@@ -170,6 +170,8 @@ Density settings are initialized to a 25-meter Grid Size, a Minimum People-per-C
 - Fits the viewport to route bounds after a successful course commit.
 - Maintains separate route, marker, density, and optional basemap layer groups.
 - Replaces marker and density contents from the same snapshot rather than incrementally deriving one layer from the other.
+- Applies each `MarkerDescriptor.style` while creating the marker: default opacity is 1, a finished non-longest marker uses opacity 0.35, and a longest-finisher marker uses a bright-yellow visual treatment with opacity 1.
+- Keeps popup construction independent from marker styling so participant name, finish duration, simulation time, and safe text-node rendering remain unchanged.
 - Accepts the active Density Settings for density rendering and can replace only the density group when settings change, leaving route and marker layers untouched.
 - Attaches a popup to each marker with participant name, finish duration, and current simulation time.
 - Applies visibility toggles without changing application state outside `layers`.
@@ -207,6 +209,16 @@ type ParticipantRecord = {
 type ParticipantPosition = ParticipantRecord & {
   routeFraction: number;
   coordinate: Coordinate;
+};
+
+type MarkerStyle = {
+  opacity: 1 | 0.35;
+  colour: 'default' | 'bright-yellow';
+};
+
+type MarkerDescriptor = ParticipantPosition & {
+  simulationTimeSeconds: number;
+  style: MarkerStyle;
 };
 
 type SimulationSnapshot = {
@@ -314,6 +326,18 @@ Group each current participant coordinate by `(cellX, cellY)` and count position
 
 The default `gridSizeMeters` is 25, the default minimum is 1, and the default warning threshold is `null`, preserving current behavior. A `L.circle` per retained cell is sufficient for the likely scale of a parkrun result set and keeps the implementation dependency-free beyond Leaflet.
 
+### Participant marker styling
+
+`buildMarkerDescriptors` derives a `MarkerStyle` for every position in the current `SimulationSnapshot`. It first finds the greatest `finishDurationSeconds` among the snapshot positions, so participants with equal greatest durations all qualify as longest finishers. The style decision follows this precedence:
+
+1. A longest finisher receives `colour: 'bright-yellow'` and `opacity: 1`, regardless of the participant's `routeFraction`.
+2. A non-longest participant with `routeFraction >= 1` receives the default colour and `opacity: 0.35`.
+3. A non-longest participant with `routeFraction < 1` receives the default colour and `opacity: 1`.
+
+The Leaflet adapter maps `bright-yellow` to the fixed colour token `#ffff00`. The adapter applies opacity and colour while creating or replacing marker layers. No marker-style setting is added to `ApplicationState` or the DOM controls, so the behavior is enabled by default.
+
+Marker style is derived during each snapshot render and does not mutate the snapshot, participant positions, simulation time, density cells, or playback state. The same snapshot continues to supply both marker descriptors and density aggregation. Re-rendering a later snapshot recomputes styles, which updates boundary and post-finish appearance without changing the simulation transition itself. Popup construction continues to consume the marker descriptor's existing display fields and DOM text nodes, so popup content and safe participant-name rendering are unchanged.
+
 ### Playback timing
 
 On `start`, record the current `performance.now()` timestamp. On each animation frame:
@@ -383,7 +407,10 @@ Cover:
 - Unsupported extension and forced file-read failure identify the file and accepted type.
 - Start from a paused non-zero time, pause without changes, reset to zero, and complete at the final time.
 - Marker popup includes display name, finish duration, and current simulation time.
+- Marker style renders unfinished participants opaque, applies opacity 0.35 at the exact finish boundary and after finishing, highlights the longest finisher in bright yellow before and after finishing, highlights every tied longest finisher, and gives yellow precedence over finished translucency.
+- Marker style recomputation on snapshot rerender changes only marker appearance; simulation time, participant positions, density output, and playback state remain unchanged.
 - Route fit, simultaneous default layers, and replacement reset are tested through the Leaflet adapter with a mocked map.
+- Marker popup content and safe participant-name rendering remain unchanged when marker styles change.
 - Density settings initialize to 25 m, minimum 1, and disabled warning threshold; valid edits apply immediately, invalid edits retain the prior value, and session restoration does not cross a new browser session.
 - Warning threshold equality uses the warning colour, values below the threshold use normal colours, and the threshold validator rejects values equal to or below the minimum filter.
 - Playback time, playback state, and participant positions remain unchanged when density settings change while paused or running.
@@ -399,7 +426,7 @@ Feature: course-density-visualization, Property N: <property text>
 
 Generators should include repeated coordinates, multiple track segments, varied route lengths, duplicate participant names, boundary times, zero/one-second components, and invalid result rows. Compare floating-point coordinates and distances with a documented tolerance such as `1e-9` degrees for interpolation and `1e-6` meters for cumulative-distance assertions.
 
-Property tests should cover the properties below. The reflection step consolidated overlapping time-boundary rules into one simulation property and kept marker/density snapshot consistency as one state-propagation property.
+Property tests should cover the properties below. The reflection step consolidated overlapping time-boundary rules into one simulation property, combined unfinished and finished opacity boundaries into one marker-opacity property, combined longest-finisher highlighting and tie handling into one collection property, and kept marker/density snapshot consistency and styling isolation as state-propagation properties.
 
 ## Correctness Properties
 
@@ -495,6 +522,30 @@ For any fixed Participant Positions, course center, and valid Density Settings, 
 
 **Validates: Requirements 6.8, 6.9, 6.10**
 
+### Property 16: Marker opacity follows the finish boundary
+
+For all valid participant snapshots, every marker with a `routeFraction` less than 1 SHALL have default opacity 1, and every non-highlighted marker with a `routeFraction` equal to or greater than 1 SHALL have opacity 0.35.
+
+**Validates: Requirements 7.1, 7.2**
+
+### Property 17: Longest-finisher highlighting covers ties and the full playback
+
+For any valid participant collection and any snapshot time before, at, or after each longest participant's finish duration, every participant whose `finishDurationSeconds` equals the collection maximum SHALL have the bright-yellow style with opacity 1, including every tied maximum.
+
+**Validates: Requirements 7.3, 7.4**
+
+### Property 18: Longest-finisher highlighting takes precedence over finished translucency
+
+For all valid snapshots containing a longest participant with `routeFraction` greater than or equal to 1, that participant's marker SHALL have bright-yellow style and opacity 1 rather than finished opacity 0.35.
+
+**Validates: Requirements 7.5**
+
+### Property 19: Marker styling is a snapshot-only render transformation
+
+For any valid application state and current SimulationSnapshot, deriving or applying marker styles SHALL preserve Simulation Time, Participant Positions, Density Layer output, Playback State, popup fields, and safe participant-name text while changing only marker visual style fields.
+
+**Validates: Requirements 7.6, 7.7**
+
 
 The remaining acceptance criteria are deliberately covered by example, edge-case, integration, or smoke tests rather than universal properties:
 
@@ -508,6 +559,8 @@ The remaining acceptance criteria are deliberately covered by example, edge-case
 - Density setting defaults, explicit disabled threshold, valid-option controls, live updates without playback reset, and session-only restoration: unit and browser integration tests for 6.1, 6.2, 6.5, and 6.6.
 - Density setting validation and deterministic filter/colour boundaries: property tests for 6.3, 6.4, and 6.8 through 6.10, with example tests for invalid input notices.
 - Accessible controls, active-setting status, legend behavior, keyboard operation, responsive layout, and browser behavior: browser integration tests for 6.7.
+- Finished-marker opacity boundary, longest-finisher highlighting, tied longest finishers, highlight precedence, and snapshot-only styling: unit/property tests for 7.1 through 7.6.
+- Popup preservation, safe participant names, default-enabled behavior, and absence of new marker-style controls: mocked-map and browser smoke/integration tests for 7.7 and 7.8.
 
 This split prevents external map behavior and one-time configuration checks from being mistaken for property-based tests while retaining direct coverage for every acceptance criterion.
 

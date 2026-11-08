@@ -206,12 +206,47 @@ Build the static Vite/TypeScript browser application described in the design. Th
   - Run the focused unit, property, mocked Leaflet, and browser integration suites for density settings with single-run commands.
   - Ensure all tests pass, ask the user if questions arise.
 
+- [x] 12. Implement snapshot-derived participant marker emphasis
+  - [x] 12.1 Extend the marker render models and descriptor builder with snapshot-derived style fields.
+    - Compute the greatest `finishDurationSeconds` from the current `SimulationSnapshot`, including all tied maxima.
+    - Assign default opacity 1 before finish, opacity 0.35 at or after `routeFraction` 1 for non-longest participants, and bright-yellow style with opacity 1 for every longest finisher.
+    - Keep style derivation immutable and separate from simulation, density, playback, and application-state transitions.
+    - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
+
+  - [x] 12.2 Apply marker styles in the Leaflet adapter without changing popup behavior.
+    - Map the bright-yellow style to the fixed `#ffff00` visual treatment and apply finished opacity 0.35 only when longest-finisher precedence does not apply.
+    - Rebuild styles from every current snapshot while preserving marker popup fields, safe participant-name text rendering, density layers, and existing layer visibility behavior.
+    - Do not add marker-style controls or settings; styling remains enabled by default.
+    - _Requirements: 7.5, 7.7, 7.8_
+
+  - [x]* 12.3 Write unit and property tests for marker style boundaries and longest-finisher rules.
+    - **Property 16: Marker opacity follows the finish boundary**
+    - **Validates: Requirements 7.1, 7.2**
+    - **Property 17: Longest-finisher highlighting covers ties and the full playback**
+    - **Validates: Requirements 7.3, 7.4**
+    - **Property 18: Longest-finisher highlighting takes precedence over finished translucency**
+    - **Validates: Requirements 7.5**
+    - **Property 19: Marker styling is a snapshot-only render transformation**
+    - **Validates: Requirements 7.6, 7.7**
+    - Run each property with at least 100 generated cases and add focused examples for before-finish, exact-finish, after-finish, tied durations, and precedence.
+
+  - [x]* 12.4 Write mocked-map and browser integration tests for rerendering and unchanged state.
+    - Verify a later SimulationSnapshot updates marker styles while preserving simulation time, participant positions, density output, playback state, and marker visibility.
+    - Verify marker popups retain finish duration, current simulation time, and safe display-name rendering when names contain markup characters.
+    - Verify default startup enables the styling behavior and exposes no new marker-style settings.
+    - _Requirements: 7.5, 7.6, 7.7, 7.8_
+
+- [x] 13. Checkpoint - Ensure all participant-marker styling tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
 ## Notes
 
 - Tasks marked with `*` are optional test tasks and may be skipped for a faster MVP, but they document the required validation coverage.
 - Each implementation task builds on earlier domain or application wiring and references the acceptance criteria it satisfies.
 - Property tests are included for every correctness property in the design; each property is named and mapped to its requirements.
 - The density-setting tasks preserve current defaults while adding live, session-scoped configuration and cover both pure density behavior and browser accessibility.
+- Participant-marker styling is a default render concern, not a user setting; task 12 keeps it derived from snapshots and separate from density/state transitions.
+- Marker-style tests cover before-finish, exact-finish, after-finish, longest-finisher highlighting, ties, precedence, rerender updates, unchanged state/density, popup preservation, and safe names.
 - Browser tests use a fresh browser context when verifying that settings do not persist across visits.
 - Browser integration tests cover Leaflet, file inputs, playback controls, and static-app behavior that pure domain tests cannot cover.
 - Checkpoint tasks are validation points only and are not included in the dependency graph.
@@ -234,7 +269,10 @@ Build the static Vite/TypeScript browser application described in the design. Th
     { "id": 10, "tasks": ["10.2"] },
     { "id": 11, "tasks": ["10.3", "10.4"] },
     { "id": 12, "tasks": ["10.5", "10.6"] },
-    { "id": 13, "tasks": ["10.7"] }
+    { "id": 13, "tasks": ["10.7"] },
+    { "id": 14, "tasks": ["12.1"] },
+    { "id": 15, "tasks": ["12.2"] },
+    { "id": 16, "tasks": ["12.3", "12.4"] }
   ]
 }
 ```

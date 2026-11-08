@@ -31,6 +31,10 @@ The Course Density Visualization Tool is a static browser application for explor
 - **Minimum People-per-Circle Filter**: The minimum participant count required for a density cell to be rendered as a circle.
 - **Warning Colour Threshold**: An optional participant count at which rendered cells use the warning colour; an enabled threshold must be greater than the Minimum People-per-Circle Filter.
 - **Browser Session**: The period from opening a browser context until that context is closed; Density Settings persist only within this period.
+- **Marker Style**: The visual opacity and colour state applied to a Participant Marker Layer marker for the current SimulationSnapshot.
+- **Finished Marker**: A participant marker whose Route Fraction is greater than or equal to 1.
+- **Longest Finisher**: Every participant whose Finish Duration equals the greatest Finish Duration in the current Participant Records.
+- **Bright Yellow Highlight**: The default-enabled marker colour `#ffff00` used for every Longest Finisher.
 
 ## Requirements
 
@@ -119,3 +123,18 @@ The Course Density Visualization Tool is a static browser application for explor
 8. WHEN the Density Layer aggregates Participant Positions, THE Density Layer SHALL produce the same cell boundaries, counts, filtered cells, and colours for the same Participant Positions and density settings.
 9. WHEN the Density Layer applies the Minimum People-per-Circle Filter, THE Density Layer SHALL include a cell when its participant count is greater than or equal to the filter and SHALL exclude a cell when its participant count is less than the filter.
 10. WHEN a rendered cell count is greater than or equal to an enabled Warning Colour Threshold, THE Density Layer SHALL use the warning colour, and WHEN a rendered cell count is less than the threshold, THE Density Layer SHALL use the normal density colour scale.
+
+### Requirement 7: Emphasize finished and longest-finisher markers
+
+**User Story:** As a race analyst, I want finished participants and the longest-finishing participants to remain visually distinct, so that I can follow the race leaders and understand who has completed the course.
+
+#### Acceptance Criteria
+
+1. WHEN the Static Visualization Tool renders a participant marker with a Route Fraction less than 1, THE Static Visualization Tool SHALL retain the default opaque marker style.
+2. WHEN the Static Visualization Tool renders a participant marker with a Route Fraction equal to or greater than 1, THE Static Visualization Tool SHALL apply marker opacity 0.35.
+3. WHEN a participant has the greatest Finish Duration in the current Participant Records, THE Static Visualization Tool SHALL apply the Bright Yellow Highlight to that participant marker before, at, and after the participant's finish time.
+4. WHEN multiple participants share the greatest Finish Duration in the current Participant Records, THE Static Visualization Tool SHALL apply the Bright Yellow Highlight to every tied participant marker.
+5. WHEN a participant qualifies for both the Finished Marker style and the Longest Finisher style, THE Static Visualization Tool SHALL apply the Bright Yellow Highlight with default opaque opacity instead of marker opacity 0.35.
+6. WHEN the Static Visualization Tool derives Marker Style from a current SimulationSnapshot, THE Static Visualization Tool SHALL preserve Simulation Time, Participant Positions, Density Layer output, and Playback State.
+7. WHEN the Static Visualization Tool applies Marker Style, THE Static Visualization Tool SHALL preserve participant popup content and safe text rendering for participant display names.
+8. THE Static Visualization Tool SHALL enable Finished Marker translucency and Bright Yellow Highlight styling by default without adding user-facing marker-style settings.
