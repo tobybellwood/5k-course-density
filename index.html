@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Explore participant movement and course density for a running event."
+    />
+    <title>Course Density Visualization</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div
+      id="app"
+      class="app-shell"
+      data-example-course="./examples/onthegomap-5-km-route.gpx"
+      data-example-results="./examples/results%20_%20Riverbank%20parkrun.html"
+    >
+      <header class="app-header">
+        <h1>Course Density Visualization</h1>
+        <p>
+          Replay participant movement along a course using finish times from a
+          results page.
+        </p>
+      </header>
+
+      <main class="app-main">
+        <section id="input-controls" class="panel" aria-labelledby="input-heading">
+          <h2 id="input-heading">Input files</h2>
+          <div class="file-controls">
+            <div class="file-control">
+              <label for="course-file-input">GPX course file</label>
+              <input
+                id="course-file-input"
+                name="course-file"
+                type="file"
+                accept=".gpx,application/gpx+xml,application/xml,text/xml"
+                aria-describedby="course-file-hint"
+              />
+              <span id="course-file-hint">Accepts GPX files (.gpx).</span>
+            </div>
+            <div class="file-control">
+              <label for="results-file-input">HTML results file</label>
+              <input
+                id="results-file-input"
+                name="results-file"
+                type="file"
+                accept=".html,.htm,text/html"
+                aria-describedby="results-file-hint"
+              />
+              <span id="results-file-hint">Accepts HTML files (.html or .htm).</span>
+            </div>
+          </div>
+          <button id="reset-example-button" type="button">
+            Reset to bundled example
+          </button>
+        </section>
+
+        <section id="status-panel" class="panel" aria-labelledby="status-heading">
+          <h2 id="status-heading">Playback status</h2>
+          <dl id="status" class="status-list" aria-live="polite">
+            <div>
+              <dt>Simulation time</dt>
+              <dd id="simulation-time">0:00</dd>
+            </div>
+            <div>
+              <dt>Total duration</dt>
+              <dd id="total-duration">0:00</dd>
+            </div>
+            <div>
+              <dt>Playback state</dt>
+              <dd id="playback-state">Paused</dd>
+            </div>
+            <div>
+              <dt>Participants</dt>
+              <dd id="participant-count">0</dd>
+            </div>
+            <div>
+              <dt>Excluded rows</dt>
+              <dd id="excluded-row-count">0</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section id="playback-controls" class="panel" aria-labelledby="playback-heading">
+          <h2 id="playback-heading">Playback controls</h2>
+          <div class="button-row">
+            <button id="start-playback-button" type="button" disabled>
+              Start
+            </button>
+            <button id="pause-playback-button" type="button" disabled>
+              Pause
+            </button>
+            <button id="reset-playback-button" type="button" disabled>
+              Reset playback
+            </button>
+          </div>
+        </section>
+
+        <section
+          id="visualization-controls"
+          class="panel"
+          aria-labelledby="visualization-heading"
+        >
+          <h2 id="visualization-heading">Visualization layers</h2>
+          <div class="layer-controls">
+            <label>
+              <input
+                id="markers-layer-toggle"
+                name="markers-layer"
+                type="checkbox"
+                checked
+              />
+              Participant markers
+            </label>
+            <label>
+              <input
+                id="density-layer-toggle"
+                name="density-layer"
+                type="checkbox"
+                checked
+              />
+              Course density
+            </label>
+          </div>
+        </section>
+
+        <section id="notice-panel" class="panel" aria-labelledby="notice-heading">
+          <h2 id="notice-heading">Notices</h2>
+          <div
+            id="validation-notice"
+            class="notice"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            Loading the bundled course and results example…
+          </div>
+        </section>
+
+        <section id="map-region" class="map-region" aria-labelledby="map-heading">
+          <h2 id="map-heading">Course map</h2>
+          <div
+            id="map"
+            class="map"
+            role="application"
+            aria-label="Course map showing participant positions and density"
+          ></div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,185 @@
+# Implementation Plan: Course Density Visualization
+
+## Overview
+
+Build the static Vite/TypeScript browser application described in the design. The implementation proceeds from project and domain foundations through transactional application state, Leaflet rendering, playback, and browser wiring. Domain modules remain pure so parsing, timing, geometry, simulation, and density behavior can be tested independently from the browser and map APIs.
+
+## Tasks
+
+- [x] 1. Scaffold the static TypeScript application and bundled example inputs
+  - [x] 1.1 Create the Vite project structure, TypeScript configuration, package scripts, and dependencies for Leaflet, Vitest, fast-check, and browser integration testing.
+    - Define the source directories and test configuration described in the design.
+    - Keep the production build suitable for static hosting with no server-side runtime.
+    - _Requirements: 5.5_
+  - [x] 1.2 Copy the supplied GPX and saved results HTML into `public/examples` and create the initial `index.html` shell with control, status, notice, and map-region containers.
+    - Use the bundled example paths rather than depending on workspace-root files at runtime.
+    - Include labels and stable element hooks needed by the later DOM view and browser tests.
+    - _Requirements: 1.1, 3.7, 4.1_
+  - [x] 1.3 Add a static-build smoke test that verifies the Vite output includes the application and both example assets.
+    - Confirm the built app can operate without a server-side parsing service.
+    - _Requirements: 1.1, 5.5_
+
+- [x] 2. Implement shared domain models and validation utilities
+  - [x] 2.1 Define the TypeScript data models, parser result unions, validation reasons, and application-facing validation summary helpers.
+    - Implement the `Coordinate`, `TrackPoint`, `CourseTrack`, participant, snapshot, density-cell, and `ApplicationState` types from the design.
+    - Ensure invalid numeric coordinates, durations, empty IDs, and negative times cannot enter the domain APIs.
+    - _Requirements: 1.5, 2.2, 3.6, 5.3_
+  - [x] 2.2 Implement validation-summary aggregation and notice formatting for excluded-row counts, reason categories, retained prior input, unsupported types, and file-read failures.
+    - Keep successful valid data and validation metadata separate so a failed replacement can leave derived state untouched.
+    - _Requirements: 1.6, 1.8, 5.2, 5.3, 5.4_
+  - [x] 2.3 Write unit tests for validation reason aggregation, empty summaries, and specific notices for failed replacements.
+    - Cover malformed input, no-valid-records, unsupported-file-type, and file-read-failure cases.
+    - _Requirements: 1.6, 1.8, 5.2, 5.3, 5.4_
+
+- [x] 3. Implement duration parsing, geometry, and GPX parsing
+  - [x] 3.1 Implement strict `MM:SS` and `H:MM:SS` duration parsing with whole-second output and typed invalid/non-positive failures.
+    - Trim surrounding whitespace, require integer components, enforce seconds from 0 through 59, and reject zero or negative durations.
+    - _Requirements: 2.1, 2.2_
+  - [x] 3.2 Write the duration parser property test.
+    - **Property 2: Supported duration strings round-trip to exact seconds**
+    - **Validates: Requirements 2.1**
+    - Generate valid hour/minute/second values and assert exact whole-second results, including boundary components.
+  - [x] 3.3 Implement haversine distance, route bounds, cumulative-distance calculation, and distance-based coordinate interpolation.
+    - Preserve repeated points, handle zero-distance routes, skip zero-length interpolation segments, clamp fractions, and return exact endpoints.
+    - _Requirements: 1.5, 2.4, 2.5, 2.6, 2.7_
+  - [x] 3.4 Implement the GPX parser with XML parser-error handling, ordered `trkseg trkpt` extraction, finite coordinate/range validation, invalid-point reason counts, and minimum-point validation.
+    - Return typed parse results without throwing expected validation failures.
+    - _Requirements: 1.4, 1.5, 1.6_
+  - [x] 3.5 Write GPX and geometry property tests.
+    - **Property 1: GPX parsing preserves ordered geometry and distance invariants**
+    - **Validates: Requirements 1.4, 1.5**
+    - Generate multiple segments, repeated coordinates, and varied valid routes; compare cumulative distances with the documented tolerance.
+  - [x] 3.6 Write unit and edge-case tests for malformed XML, invalid coordinate attributes, fewer than two usable points, repeated points, zero-distance routes, and endpoint interpolation.
+    - _Requirements: 1.6, 2.4, 2.6, 2.7_
+
+- [x] 4. Implement results parsing and participant normalization
+  - [x] 4.1 Implement the results parser for the saved Riverbank table and fallback ordinary tables.
+    - Prefer `.Results-table-row`, compact name, and event-time cells; map ordinary table headers containing name/parkrunner and time/finish.
+    - Ignore scripts, styles, links, images, and detailed PB values that are not the event finish time.
+    - _Requirements: 1.7, 2.1_
+  - [x] 4.2 Add stable participant ID generation based on normalized row index and collision suffixes for duplicate names.
+    - Preserve display names while keeping IDs unique within one parsed result set.
+    - _Requirements: 1.7, 4.2_
+  - [x] 4.3 Exclude rows with missing names, invalid durations, or non-positive durations and return reason counts; fail a replacement when no valid records remain.
+    - Keep valid records in source order and return a typed parse result.
+    - _Requirements: 1.8, 2.2, 5.3_
+  - [x] 4.4 Write the results parser property tests.
+    - **Property 3: Invalid result fields are excluded and categorized**
+    - **Validates: Requirements 2.2**
+    - **Property 11: Validation summaries aggregate excluded-row reasons**
+    - **Validates: Requirements 5.3**
+    - Generate invalid names and duration categories and assert no invalid participant is emitted and every category count is exact.
+  - [x] 4.5 Write example tests for the supplied Riverbank HTML, compact event-time selection, duplicate names, header-only tables, empty tables, and all-invalid files.
+    - _Requirements: 1.7, 1.8, 2.2_
+
+- [x] 5. Implement pure simulation and density domain services
+  - [x] 5.1 Implement `simulate` and total-duration calculation.
+    - Compute the maximum finish duration, clamp each participant’s route fraction, interpolate by cumulative route distance, and keep finished participants at the final point.
+    - Return immutable snapshots containing one current position per valid participant.
+    - _Requirements: 2.3, 2.4, 2.5, 2.6, 2.7_
+  - [x] 5.2 Write simulation property tests.
+    - **Property 4: Total duration is the maximum participant duration**
+    - **Validates: Requirements 2.3**
+    - **Property 5: Constant-pace simulation clamps and interpolates by route distance**
+    - **Validates: Requirements 2.4, 2.5, 2.6, 2.7**
+    - Generate route shapes, repeated points, participant durations, boundary times, and non-negative times; compare coordinates and fractions with the documented tolerance.
+  - [x] 5.3 Implement deterministic meter-grid density aggregation and density-cell coordinate conversion.
+    - Use the course-centered local projection, configurable positive grid size, cell counts, and cell-center coordinates from the design.
+    - _Requirements: 4.4_
+  - [x] 5.4 Write density aggregation property and edge-case tests.
+    - **Property 8: Density cells equal position counts**
+    - **Validates: Requirements 4.4**
+    - Generate positions, duplicate coordinates, and positive grid sizes; assert per-cell counts and total count conservation.
+
+- [x] 6. Implement transactional application state and input coordination
+  - [x] 6.1 Implement application state creation and complete state transitions for initial load, successful course replacement, successful participant replacement, validation updates, layer toggles, snapshot updates, and reset-to-example.
+    - Commit parsed replacements only after validation succeeds.
+    - Reset simulation time and recompute total duration/snapshot for successful replacements while preserving the prior valid input and derived data on failures.
+    - _Requirements: 1.2, 1.3, 3.4, 3.6, 4.6, 5.1, 5.4_
+  - [x] 6.2 Implement bundled-example bootstrap and local file coordination.
+    - Fetch both `/examples/` sources in parallel, parse them in the browser, validate `.gpx`, `.html`, and `.htm` extensions, read `File.text()`, and report named file/read/type failures.
+    - Keep a reset-to-example action available after replacements.
+    - _Requirements: 1.1, 1.2, 1.3, 5.2, 5.4, 5.5_
+  - [x] 6.3 Write state-transition unit tests for atomic commits, failed replacement retention, replacement reset-to-zero behavior, unavailable-input playback state, layer toggles, and example reset.
+    - _Requirements: 1.2, 1.3, 1.6, 1.8, 3.6, 4.6, 5.1, 5.4_
+
+- [x] 7. Implement Leaflet map rendering and visualization models
+  - [x] 7.1 Implement the marker descriptor and density render-model builders from one `SimulationSnapshot`.
+    - Produce one identifiable marker descriptor per valid participant and density cells derived from the same position collection and simulation time.
+    - _Requirements: 4.2, 4.4, 4.7_
+  - [x] 7.2 Write render-model property tests.
+    - **Property 7: Marker descriptors are one-to-one with valid participants**
+    - **Validates: Requirements 4.2**
+    - **Property 10: Both visual layers derive from one snapshot**
+    - **Validates: Requirements 4.7**
+    - Generate participant collections and snapshots, then assert one marker per participant and identical source time/coordinates across marker and density models.
+  - [x] 7.3 Implement `LeafletMapView` with route polyline, fitted route bounds, separate marker/density/basemap groups, marker popups, and density circles.
+    - Rebuild marker and density contents from the same snapshot, include participant name, finish duration, and current simulation time in popups, and assign user-provided values through safe text APIs or escaped content.
+    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
+  - [x] 7.4 Implement marker and density visibility toggles without modifying simulation state.
+    - Apply both layers by default when valid input exists and preserve time/positions when visibility changes.
+    - _Requirements: 4.5, 4.6, 4.7_
+  - [x] 7.5 Write Leaflet adapter tests with a mocked map for route fitting, default simultaneous layers, popup content, safe participant-name rendering, and visibility toggles.
+    - _Requirements: 4.1, 4.3, 4.5, 4.6_
+
+- [x] 8. Implement accelerated playback and synchronized status updates
+  - [x] 8.1 Implement `PlaybackController` using `requestAnimationFrame`, monotonic frame timestamps, 60 simulated seconds per real second, start/pause/reset/dispose, terminal clamping, and complete-state handling.
+    - Start from the current time, preserve the current snapshot on pause, emit a terminal snapshot, and stop requesting frames at total duration.
+    - Keep the controller independent of Leaflet and DOM APIs except for injected clock/frame callbacks.
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+  - [x] 8.2 Write playback clock property tests.
+    - **Property 6: Playback clock uses the 60x conversion**
+    - **Validates: Requirements 3.1**
+    - Generate non-negative frame deltas and assert simulated-time increments equal delta multiplied by 60 before terminal clamping.
+  - [x] 8.3 Write playback example and edge-case tests for starting from paused non-zero time, pause preservation, reset, missing-input controls, terminal completion, and non-monotonic timestamps.
+    - _Requirements: 3.2, 3.3, 3.4, 3.5, 3.6_
+  - [x] 8.4 Connect playback snapshots to both map layers and status rendering through `AppController`.
+    - On every time change, derive marker and density output from the same simulation snapshot and update current time, total time, playback state, and valid participant count.
+    - _Requirements: 3.2, 3.7, 4.7_
+  - [x] 8.5 Write a controller integration test that verifies one snapshot update drives marker and density rendering together and status values remain synchronized.
+    - _Requirements: 3.2, 3.7, 4.7_
+
+- [x] 9. Implement the DOM view, accessibility, responsive styling, and application entrypoint
+  - [x] 9.1 Implement `domView` bindings for file inputs, playback controls, example reset, layer checkboxes, status fields, validation summary, and `aria-live` notice/status regions.
+    - Disable playback controls when course or participant input is unavailable while keeping reset-to-example available.
+    - Format simulation durations as `M:SS` or `H:MM:SS` and display excluded-row summaries and notices.
+    - _Requirements: 3.6, 3.7, 5.2, 5.3_
+  - [x] 9.2 Add responsive CSS for the header, control/status panel, two-column layout, map region, controls, notices, and accessible focus/label styling.
+    - Keep the route visible without requiring a network basemap and ensure the map region remains usable at narrow widths.
+    - _Requirements: 4.1, 5.5_
+  - [x] 9.3 Wire `main.ts` to construct the DOM view, Leaflet view, application controller, playback controller, bundled bootstrap, and event handlers.
+    - Ensure startup loads the supplied example, local replacements are transactional, reset-to-example reloads both bundled sources, and Leaflet initialization failures leave parser/status output available with a visible notice.
+    - _Requirements: 1.1, 1.2, 1.3, 3.6, 4.1, 5.1, 5.4, 5.5_
+  - [x] 9.4 Write browser integration tests against the built static app.
+    - Verify built-in startup, local GPX/results replacement, failed replacement retention, playback controls and status, route/markers/density display, popup content, layer toggles, and reset-to-example.
+    - _Requirements: 1.1, 1.2, 1.3, 1.6, 1.8, 3.2, 3.3, 3.4, 3.5, 3.7, 4.1, 4.2, 4.3, 4.5, 4.6, 5.1, 5.2, 5.4_
+
+- [x] 10. Final checkpoint - Ensure all tests pass
+  - Run the unit, property, static-build, mocked Leaflet, and browser integration test suites with single-run commands.
+  - Ensure all tests pass, ask the user if questions arise.
+
+## Notes
+
+- Tasks marked with `*` are optional test tasks and may be skipped for a faster MVP, but they document the required validation coverage.
+- Each implementation task builds on earlier domain or application wiring and references the acceptance criteria it satisfies.
+- Property tests are included for every correctness property in the design; each property is named and mapped to its requirements.
+- Browser integration tests cover Leaflet, file inputs, playback controls, and static-app behavior that pure domain tests cannot cover.
+- Checkpoint tasks are validation points only and are not included in the dependency graph.
+
+## Task Dependency Graph
+
+```json
+{
+  "waves": [
+    { "id": 0, "tasks": ["1.1", "2.1"] },
+    { "id": 1, "tasks": ["1.2", "2.2", "3.1", "3.3"] },
+    { "id": 2, "tasks": ["1.3", "2.3", "3.4", "4.1", "4.2", "4.3"] },
+    { "id": 3, "tasks": ["3.2", "3.5", "3.6", "4.4", "4.5", "5.1", "5.3"] },
+    { "id": 4, "tasks": ["5.2", "5.4", "6.1", "7.1"] },
+    { "id": 5, "tasks": ["6.2", "7.2", "7.3", "8.1"] },
+    { "id": 6, "tasks": ["6.3", "7.4", "7.5", "8.2", "8.3", "9.1", "9.2"] },
+    { "id": 7, "tasks": ["8.4", "8.5", "9.3"] },
+    { "id": 8, "tasks": ["9.4"] }
+  ]
+}
+```

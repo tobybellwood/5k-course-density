@@ -1,0 +1,756 @@
+{
+  "pbtResults": {
+    "3.5 Write GPX and geometry property tests.": {
+      "status": "passed",
+      "lastRunTimestamp": 1794105331053
+    },
+    "3.2 Write the duration parser property test.": {
+      "status": "passed",
+      "lastRunTimestamp": 1794105411921
+    },
+    "5.2 Write simulation property tests.": {
+      "status": "passed",
+      "lastRunTimestamp": 1794105723771
+    },
+    "5.4 Write density aggregation property and edge-case tests.": {
+      "status": "passed",
+      "lastRunTimestamp": 1794105741474
+    },
+    "7.2 Write render-model property tests.": {
+      "status": "passed",
+      "lastRunTimestamp": 1794105818230
+    },
+    "8.2 Write playback clock property tests.": {
+      "status": "passed",
+      "lastRunTimestamp": 1794105988130
+    }
+  },
+  "executionHistory": {
+    "1.1 Create the Vite project structure, TypeScript configuration, package scripts, and dependencies for Leaflet, Vitest, fast-check, and browser integration testing.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127459
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104134441
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104750760
+      }
+    ],
+    "1.2 Copy the supplied GPX and saved results HTML into `public/examples` and create the initial `index.html` shell with control, status, notice, and map-region containers.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127553
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104756999
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104886658
+      }
+    ],
+    "1.3 Add a static-build smoke test that verifies the Vite output includes the application and both example assets.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127622
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104891673
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105063025
+      }
+    ],
+    "2.1 Define the TypeScript data models, parser result unions, validation reasons, and application-facing validation summary helpers.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127654
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104134493
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104750795
+      }
+    ],
+    "2.2 Implement validation-summary aggregation and notice formatting for excluded-row counts, reason categories, retained prior input, unsupported types, and file-read failures.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127688
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104756963
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104886692
+      }
+    ],
+    "2.3 Write unit tests for validation reason aggregation, empty summaries, and specific notices for failed replacements.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127714
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104891704
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105062969
+      }
+    ],
+    "3.1 Implement strict `MM:SS` and `H:MM:SS` duration parsing with whole-second output and typed invalid/non-positive failures.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127744
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104757134
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104886833
+      }
+    ],
+    "3.2 Write the duration parser property test.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127796
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105201914
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105425644
+      }
+    ],
+    "3.3 Implement haversine distance, route bounds, cumulative-distance calculation, and distance-based coordinate interpolation.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127822
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104757166
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104886862
+      }
+    ],
+    "3.4 Implement the GPX parser with XML parser-error handling, ordered `trkseg trkpt` extraction, finite coordinate/range validation, invalid-point reason counts, and minimum-point validation.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127847
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104891838
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105063138
+      }
+    ],
+    "3.5 Write GPX and geometry property tests.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127873
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105201938
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105425594
+      }
+    ],
+    "3.6 Write unit and edge-case tests for malformed XML, invalid coordinate attributes, fewer than two usable points, repeated points, zero-distance routes, and endpoint interpolation.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127899
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105201966
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105425678
+      }
+    ],
+    "4.1 Implement the results parser for the saved Riverbank table and fallback ordinary tables.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127930
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104891860
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105063174
+      }
+    ],
+    "4.2 Add stable participant ID generation based on normalized row index and collision suffixes for duplicate names.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127954
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104891884
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105063209
+      }
+    ],
+    "4.3 Exclude rows with missing names, invalid durations, or non-positive durations and return reason counts; fail a replacement when no valid records remain.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104127981
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104891907
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105197257
+      }
+    ],
+    "4.4 Write the results parser property tests.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128013
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105202101
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105425749
+      }
+    ],
+    "4.5 Write example tests for the supplied Riverbank HTML, compact event-time selection, duplicate names, header-only tables, empty tables, and all-invalid files.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128039
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105202072
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105425721
+      }
+    ],
+    "5.1 Implement `simulate` and total-duration calculation.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128064
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105202155
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105425779
+      }
+    ],
+    "5.2 Write simulation property tests.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128090
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105429760
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105758944
+      }
+    ],
+    "5.3 Implement deterministic meter-grid density aggregation and density-cell coordinate conversion.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128121
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105202185
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105425810
+      }
+    ],
+    "5.4 Write density aggregation property and edge-case tests.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128148
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105429788
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105758975
+      }
+    ],
+    "6.1 Implement application state creation and complete state transitions for initial load, successful course replacement, successful participant replacement, validation updates, layer toggles, snapshot updates, and reset-to-example.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128182
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105429947
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105625566
+      }
+    ],
+    "6.2 Implement bundled-example bootstrap and local file coordination.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128207
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105763153
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105915382
+      }
+    ],
+    "6.3 Write state-transition unit tests for atomic commits, failed replacement retention, replacement reset-to-zero behavior, unavailable-input playback state, layer toggles, and example reset.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128237
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105920489
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106087207
+      }
+    ],
+    "7.1 Implement the marker descriptor and density render-model builders from one `SimulationSnapshot`.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128262
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105429980
+      },
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105625616
+      }
+    ],
+    "7.2 Write render-model property tests.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128290
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105763191
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105915341
+      }
+    ],
+    "7.3 Implement `LeafletMapView` with route polyline, fitted route bounds, separate marker/density/basemap groups, marker popups, and density circles.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128327
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105763239
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105915413
+      }
+    ],
+    "7.4 Implement marker and density visibility toggles without modifying simulation state.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128371
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105920540
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106087154
+      }
+    ],
+    "7.5 Write Leaflet adapter tests with a mocked map for route fitting, default simultaneous layers, popup content, safe participant-name rendering, and visibility toggles.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128396
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105920688
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106087307
+      }
+    ],
+    "8.1 Implement `PlaybackController` using `requestAnimationFrame`, monotonic frame timestamps, 60 simulated seconds per real second, start/pause/reset/dispose, terminal clamping, and complete-state handling.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128420
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105763299
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105915523
+      }
+    ],
+    "8.2 Write playback clock property tests.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128449
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105921799
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106087370
+      }
+    ],
+    "8.3 Write playback example and edge-case tests for starting from paused non-zero time, pause preservation, reset, missing-input controls, terminal completion, and non-monotonic timestamps.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128479
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105922024
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106087330
+      }
+    ],
+    "8.4 Connect playback snapshots to both map layers and status rendering through `AppController`.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128504
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106091311
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106345271
+      }
+    ],
+    "8.5 Write a controller integration test that verifies one snapshot update drives marker and density rendering together and status values remain synchronized.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128529
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106095157
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106345356
+      }
+    ],
+    "9.1 Implement `domView` bindings for file inputs, playback controls, example reset, layer checkboxes, status fields, validation summary, and `aria-live` notice/status regions.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128554
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105922059
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106345131
+      }
+    ],
+    "9.2 Add responsive CSS for the header, control/status panel, two-column layout, map region, controls, notices, and accessible focus/label styling.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128580
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105922092
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106345202
+      }
+    ],
+    "9.3 Wire `main.ts` to construct the DOM view, Leaflet view, application controller, playback controller, bundled bootstrap, and event handlers.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128605
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106095232
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106345380
+      }
+    ],
+    "9.4 Write browser integration tests against the built static app.": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128631
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106348994
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106572041
+      }
+    ],
+    "10. Final checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794104128656
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106575589
+      },
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106640377
+      }
+    ],
+    "2. Implement shared domain models and validation utilities": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105063053
+      }
+    ],
+    "1. Scaffold the static TypeScript application and bundled example inputs": [
+      {
+        "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794105063082
+      }
+    ],
+    "6. Implement transactional application state and input coordination": [
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106087244
+      }
+    ],
+    "7. Implement Leaflet map rendering and visualization models": [
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106087399
+      }
+    ],
+    "9. Implement the DOM view, accessibility, responsive styling, and application entrypoint": [
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106572091
+      }
+    ],
+    "4. Implement results parsing and participant normalization": [
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106656433
+      }
+    ],
+    "3. Implement duration parsing, geometry, and GPX parsing": [
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106656482
+      }
+    ],
+    "5. Implement pure simulation and density domain services": [
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106656511
+      }
+    ],
+    "8. Implement accelerated playback and synchronized status updates": [
+      {
+        "executionId": "115b2eb0-3bcb-4cde-8acd-bfc013cece37",
+        "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
+        "timestamp": 1794106656592
+      }
+    ]
+  }
+}
