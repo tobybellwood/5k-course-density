@@ -12,6 +12,7 @@ import type {
   SimulationSnapshot,
 } from '../app/types';
 import {
+  buildMarkerRenderModel,
   buildVisualizationRenderModel,
   DEFAULT_DENSITY_GRID_SIZE_METERS,
 } from './renderModels';
@@ -92,8 +93,9 @@ const DENSITY_COLOURS: Record<DensityCellColour, string> = {
 };
 
 const BRIGHT_YELLOW_MARKER_CLASS = 'course-density-marker--bright-yellow';
+const FINISHER_NUMBER_MARKER_CLASS = 'course-density-marker--number';
 
-function markerIconForStyle(style: MarkerDescriptor['style']): L.Icon | undefined {
+function defaultMarkerIconForStyle(style: MarkerDescriptor['style']): L.Icon | undefined {
   if (style.colour !== 'bright-yellow') {
     return undefined;
   }
@@ -101,6 +103,42 @@ function markerIconForStyle(style: MarkerDescriptor['style']): L.Icon | undefine
   // Keep the standard Leaflet marker silhouette; the class only applies the highlight.
   // @types/leaflet gives Default an optional iconUrl, unlike the base Icon type.
   return new L.Icon.Default({ className: BRIGHT_YELLOW_MARKER_CLASS }) as unknown as L.Icon;
+}
+
+function numericMarkerIconForDescriptor(markerDescriptor: MarkerDescriptor): L.DivIcon {
+  if (markerDescriptor.icon.rank === null) {
+    throw new RangeError('A finisher-number marker requires a rank');
+  }
+
+  const number = document.createElement('span');
+  number.textContent = String(markerDescriptor.icon.rank);
+  const classNames = [FINISHER_NUMBER_MARKER_CLASS];
+  if (markerDescriptor.style.colour === 'bright-yellow') {
+    classNames.push(BRIGHT_YELLOW_MARKER_CLASS);
+  }
+  return L.divIcon({
+    className: classNames.join(' '),
+    // Leaflet accepts an HTMLElement here and appends it without parsing markup.
+    html: number,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16],
+  });
+}
+
+function markerIconForDescriptor(
+  markerDescriptor: MarkerDescriptor,
+  includeDefaultIcon = false,
+): L.Icon | L.DivIcon | undefined {
+  if (markerDescriptor.icon.kind === 'finisher-number') {
+    return numericMarkerIconForDescriptor(markerDescriptor);
+  }
+
+  const defaultIcon = defaultMarkerIconForStyle(markerDescriptor.style);
+  if (defaultIcon !== undefined) {
+    return defaultIcon;
+  }
+  return includeDefaultIcon ? new L.Icon.Default() as unknown as L.Icon : undefined;
 }
 
 function densityStyle(
@@ -132,6 +170,8 @@ export class LeafletMapView {
   public readonly basemapLayerGroup: L.LayerGroup;
 
   private densitySettings: DensitySettings;
+  private showFinisherNumbers = false;
+  private readonly markersByParticipantId = new Map<string, L.Marker>();
   private readonly layerVisibility: Record<LeafletLayerName, boolean> = {
     markers: true,
     density: true,
@@ -209,19 +249,48 @@ export class LeafletMapView {
    * Replace marker and density contents from one immutable snapshot.
    * Existing visibility choices are applied after rebuilding both groups.
    */
-  public renderSnapshot(snapshot: SimulationSnapshot): void {
+  public renderSnapshot(
+    snapshot: SimulationSnapshot,
+    showFinisherNumbers = this.showFinisherNumbers,
+  ): void {
+    this.showFinisherNumbers = showFinisherNumbers;
     const renderModel = buildVisualizationRenderModel(snapshot, {
       densitySettings: this.densitySettings,
+      showFinisherNumbers,
     });
 
     this.markerLayerGroup.clearLayers();
+    this.markersByParticipantId.clear();
     for (const markerDescriptor of renderModel.markers) {
-      this.markerLayerGroup.addLayer(this.createMarker(markerDescriptor));
+      const marker = this.createMarker(markerDescriptor);
+      this.markersByParticipantId.set(markerDescriptor.id, marker);
+      this.markerLayerGroup.addLayer(marker);
     }
 
     this.renderDensityCells(renderModel.density, renderModel.densityGridSizeMeters);
     this.applyLayerVisibility('markers');
     this.applyLayerVisibility('density');
+  }
+
+  /** Replace only marker icons without rebuilding markers, popups, or density cells. */
+  public renderMarkerPresentation(
+    snapshot: SimulationSnapshot,
+    showFinisherNumbers: boolean,
+  ): void {
+    this.showFinisherNumbers = showFinisherNumbers;
+    const renderModel = buildMarkerRenderModel(snapshot, showFinisherNumbers);
+
+    for (const markerDescriptor of renderModel.markers) {
+      const marker = this.markersByParticipantId.get(markerDescriptor.id);
+      if (marker === undefined) {
+        throw new RangeError(`Missing rendered marker for participant ${markerDescriptor.id}`);
+      }
+      const icon = markerIconForDescriptor(markerDescriptor, true);
+      if (icon === undefined) {
+        throw new RangeError(`Could not create default icon for participant ${markerDescriptor.id}`);
+      }
+      marker.setIcon(icon);
+    }
   }
 
   /** Update settings without rebuilding a layer, for an unavailable snapshot. */
@@ -259,10 +328,15 @@ export class LeafletMapView {
   }
 
   /** Render a snapshot, or clear both dynamic layers when no snapshot exists. */
-  public renderSnapshotOrClear(snapshot: SimulationSnapshot | null): void {
+  public renderSnapshotOrClear(
+    snapshot: SimulationSnapshot | null,
+    showFinisherNumbers = this.showFinisherNumbers,
+  ): void {
+    this.showFinisherNumbers = showFinisherNumbers;
     if (snapshot === null) {
       this.markerLayerGroup.clearLayers();
       this.densityLayerGroup.clearLayers();
+      this.markersByParticipantId.clear();
       return;
     }
     this.renderSnapshot(snapshot);
@@ -305,7 +379,7 @@ export class LeafletMapView {
       title: markerDescriptor.displayName,
       opacity: markerDescriptor.style.opacity,
     };
-    const icon = markerIconForStyle(markerDescriptor.style);
+    const icon = markerIconForDescriptor(markerDescriptor);
     if (icon !== undefined) {
       markerOptions.icon = icon;
     }

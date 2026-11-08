@@ -239,14 +239,52 @@ Build the static Vite/TypeScript browser application described in the design. Th
 - [x] 13. Checkpoint - Ensure all participant-marker styling tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
+- [x] 14. Implement the default-off finisher-number presentation switch
+  - [x] 14.1 Add `showFinisherNumbers` to application-facing state and marker render models.
+    - Initialize the switch to `false` without session persistence.
+    - Compute each participant's stable one-based competition rank as `1 +` the count of records with a strictly shorter finish duration.
+    - Keep ranks keyed by stable participant ID and independent of snapshot order, Simulation Time, and marker position.
+    - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.11_
+  - [x] 14.2 Extend the Leaflet marker adapter with default and finisher-number icons.
+    - Replace each marker icon with its numeric rank only when the switch is enabled.
+    - Preserve marker coordinates, opacity, bright-yellow longest-finisher treatment, popup fields, marker visibility, and density output when icon presentation changes.
+    - Render rank text through safe DOM text APIs and keep participant popup names safe from markup injection.
+    - _Requirements: 8.5, 8.6, 8.7, 8.10_
+  - [x] 14.3 Add the accessible DOM switch, status text, and responsive styling.
+    - Provide an explicit `Show finisher numbers` label, keyboard operation, visible on/off status, and default-off behavior.
+    - Keep the switch, label, status, playback controls, density controls, and map usable without clipping at narrow widths.
+    - Treat toggling as a presentation-only update that does not reset or advance playback.
+    - _Requirements: 8.1, 8.5, 8.8, 8.9_
+
+- [x] 15. Test finisher-number ranking and presentation behavior
+  - [x] 15.1 Write unit and property tests for default-off and enabled marker icon states, unique ranks, tied competition ranks, rank stability across snapshot rerenders, and longest-finisher precedence.
+    - Include examples for unique durations and the `1, 2, 2, 4` tie sequence.
+    - Verify every property runs with at least 100 generated cases and uses the required feature/property tag format.
+    - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.7, 8.11_
+  - [x] 15.2 Write mocked-map tests for presentation-only updates.
+    - Toggle the switch on and off and verify only icon presentation changes while marker position, opacity, bright-yellow styling, density, popup content, Simulation Time, Playback State, and simulation state remain unchanged.
+    - Verify numeric rank icons and popup names remain safely text-rendered.
+    - _Requirements: 8.5, 8.6, 8.7, 8.10, 8.11_
+  - [x] 15.3 Write browser integration tests for the switch and responsive behavior.
+    - Verify the switch is present, labeled, keyboard accessible, off by default, reflected in status text, and usable on a narrow viewport.
+    - Toggle it during paused and running playback, then verify playback time/state, positions, density, opacity, longest-finisher styling, and popup content are preserved.
+    - Verify later snapshot rerenders retain the same ranks and that turning the switch off restores default icons.
+    - _Requirements: 8.1, 8.5, 8.6, 8.8, 8.9, 8.11_
+
+- [x] 16. Checkpoint - Ensure all finisher-number switch tests pass
+  - Run the focused unit, property, mocked-map, and browser integration suites for finisher-number presentation behavior.
+  - Ensure all tests pass, ask the user if questions arise.
+
 ## Notes
 
 - Tasks marked with `*` are optional test tasks and may be skipped for a faster MVP, but they document the required validation coverage.
 - Each implementation task builds on earlier domain or application wiring and references the acceptance criteria it satisfies.
 - Property tests are included for every correctness property in the design; each property is named and mapped to its requirements.
 - The density-setting tasks preserve current defaults while adding live, session-scoped configuration and cover both pure density behavior and browser accessibility.
-- Participant-marker styling is a default render concern, not a user setting; task 12 keeps it derived from snapshots and separate from density/state transitions.
+- Finished-marker styling is a default render concern, not a user setting; task 12 keeps it derived from snapshots and separate from density/state transitions.
 - Marker-style tests cover before-finish, exact-finish, after-finish, longest-finisher highlighting, ties, precedence, rerender updates, unchanged state/density, popup preservation, and safe names.
+- Finisher-number switch tasks keep ranking as a stable presentation concern: the switch defaults off, uses competition ranking, preserves existing marker and simulation state, and does not persist across sessions.
+- Finisher-number tests cover unique and tied rankings, default and enabled icons, longest-finisher precedence, playback preservation, popup and safe-text behavior, snapshot rerenders, keyboard access, status text, and narrow layouts.
 - Browser tests use a fresh browser context when verifying that settings do not persist across visits.
 - Browser integration tests cover Leaflet, file inputs, playback controls, and static-app behavior that pure domain tests cannot cover.
 - Checkpoint tasks are validation points only and are not included in the dependency graph.
@@ -272,7 +310,11 @@ Build the static Vite/TypeScript browser application described in the design. Th
     { "id": 13, "tasks": ["10.7"] },
     { "id": 14, "tasks": ["12.1"] },
     { "id": 15, "tasks": ["12.2"] },
-    { "id": 16, "tasks": ["12.3", "12.4"] }
+    { "id": 16, "tasks": ["12.3", "12.4"] },
+    { "id": 17, "tasks": ["14.1"] },
+    { "id": 18, "tasks": ["14.2", "14.3"] },
+    { "id": 19, "tasks": ["15.1", "15.2", "15.3"] },
+    { "id": 20, "tasks": ["16"] }
   ]
 }
 ```

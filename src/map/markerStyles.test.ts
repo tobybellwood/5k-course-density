@@ -30,6 +30,61 @@ function snapshot(
   return { simulationTimeSeconds, positions };
 }
 
+describe('marker finisher-number presentation', () => {
+  it('defaults to default icons and derives stable competition ranks', () => {
+    const positions = [
+      position('first', 'First', 10, 0.5),
+      position('second-a', 'Second A', 20, 0.5),
+      position('second-b', 'Second B', 20, 0.5),
+      position('last', 'Last', 30, 0.5),
+    ];
+    const originalSnapshot = snapshot(positions, 12);
+
+    const disabled = buildMarkerDescriptors(originalSnapshot);
+    expect(disabled.map((marker) => ({ id: marker.id, finisherRank: marker.finisherRank, icon: marker.icon })))
+      .toEqual([
+        { id: 'first', finisherRank: 1, icon: { kind: 'default', rank: null } },
+        { id: 'second-a', finisherRank: 2, icon: { kind: 'default', rank: null } },
+        { id: 'second-b', finisherRank: 2, icon: { kind: 'default', rank: null } },
+        { id: 'last', finisherRank: 4, icon: { kind: 'default', rank: null } },
+      ]);
+
+    const enabled = buildMarkerDescriptors(originalSnapshot, true);
+    expect(enabled.map((marker) => ({ id: marker.id, finisherRank: marker.finisherRank, icon: marker.icon })))
+      .toEqual([
+        { id: 'first', finisherRank: 1, icon: { kind: 'finisher-number', rank: 1 } },
+        { id: 'second-a', finisherRank: 2, icon: { kind: 'finisher-number', rank: 2 } },
+        { id: 'second-b', finisherRank: 2, icon: { kind: 'finisher-number', rank: 2 } },
+        { id: 'last', finisherRank: 4, icon: { kind: 'finisher-number', rank: 4 } },
+      ]);
+
+    const reordered = buildMarkerDescriptors(snapshot([...positions].reverse(), 900), true);
+    expect(new Map(reordered.map((marker) => [marker.id, marker.finisherRank])))
+      .toEqual(new Map([
+        ['last', 4],
+        ['second-b', 2],
+        ['second-a', 2],
+        ['first', 1],
+      ]));
+    expect(originalSnapshot).toEqual({ simulationTimeSeconds: 12, positions });
+  });
+
+  it('preserves snapshot-derived marker style in both icon states', () => {
+    const positions = [
+      position('finished', 'Finished', 10, 1),
+      position('longest', 'Longest', 20, 1),
+    ];
+    const disabled = buildMarkerDescriptors(snapshot(positions));
+    const enabled = buildMarkerDescriptors(snapshot(positions), true);
+
+    expect(disabled.map((marker) => marker.style)).toEqual([
+      { opacity: 0.35, colour: 'default' },
+      { opacity: 1, colour: 'bright-yellow' },
+    ]);
+    expect(enabled.map((marker) => marker.style)).toEqual(disabled.map((marker) => marker.style));
+  });
+});
+
 describe('marker style boundary examples', () => {
   it('keeps a non-longest marker opaque before finish and translucent at and after finish', () => {
     const markers = buildMarkerDescriptors(snapshot([
@@ -91,5 +146,33 @@ describe('marker styling preserves popup fields and safe names', () => {
     );
     expect(popup.querySelector('img')).toBeNull();
     expect(popup.innerHTML).toContain('&lt;img');
+  });
+});
+
+describe('marker finisher-number rank examples', () => {
+  it('assigns a distinct competition rank to every unique finish duration', () => {
+    const markers = buildMarkerDescriptors(snapshot([
+      position('fastest', 'Fastest', 10, 0.5),
+      position('middle', 'Middle', 20, 0.5),
+      position('slowest', 'Slowest', 30, 0.5),
+    ]), true);
+
+    expect(markers.map((marker) => marker.finisherRank)).toEqual([1, 2, 3]);
+    expect(markers.map((marker) => marker.icon)).toEqual([
+      { kind: 'finisher-number', rank: 1 },
+      { kind: 'finisher-number', rank: 2 },
+      { kind: 'finisher-number', rank: 3 },
+    ]);
+  });
+
+  it('uses competition ranks for the 1, 2, 2, 4 tie sequence', () => {
+    const markers = buildMarkerDescriptors(snapshot([
+      position('first', 'First', 10, 0.5),
+      position('second-a', 'Second A', 20, 0.5),
+      position('second-b', 'Second B', 20, 0.5),
+      position('last', 'Last', 30, 0.5),
+    ]), true);
+
+    expect(markers.map((marker) => marker.finisherRank)).toEqual([1, 2, 2, 4]);
   });
 });

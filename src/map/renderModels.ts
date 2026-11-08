@@ -7,6 +7,7 @@ import {
   MarkerDescriptor,
   MarkerRenderModel,
   ParticipantPosition,
+  ParticipantRecord,
   SimulationSnapshot,
   VisualizationRenderModel,
 } from '../app/types';
@@ -30,6 +31,8 @@ export type DensityRenderOptions = {
   readonly densitySettings?: DensitySettings;
   /** Alias accepted by domain-facing callers. */
   readonly settings?: DensitySettings;
+  /** Whether marker descriptors should select numeric finisher icons. */
+  readonly showFinisherNumbers?: boolean;
   /**
    * Center of the local meter projection. When omitted, the current
    * participant positions' arithmetic mean is used as a stable fallback.
@@ -238,38 +241,71 @@ function markerStyleForPosition(
 }
 
 /**
+ * Derive stable competition ranks from participant records. A participant's
+ * rank depends only on duration, not on record order or the current snapshot.
+ */
+export function deriveFinisherRanks(
+  records: readonly ParticipantRecord[],
+): ReadonlyMap<string, number> {
+  const ranks = new Map<string, number>();
+  for (const record of records) {
+    const rank = 1 + records.filter(
+      (candidate) => candidate.finishDurationSeconds < record.finishDurationSeconds,
+    ).length;
+    ranks.set(record.id, rank);
+  }
+  return ranks;
+}
+
+/**
  * Build one identifiable marker descriptor for every position in a snapshot.
- * Marker style is derived from the snapshot only and never mutates its positions.
+ * Marker style and icon presentation are derived immutably without changing
+ * the snapshot or its participant positions.
  */
 export function buildMarkerDescriptors(
   snapshot: SimulationSnapshot,
+  showFinisherNumbers = false,
 ): readonly MarkerDescriptor[] {
   assertValidSnapshot(snapshot);
+  if (typeof showFinisherNumbers !== 'boolean') {
+    throw new TypeError('showFinisherNumbers must be boolean');
+  }
 
   const greatestFinishDurationSeconds = snapshot.positions.reduce(
     (greatest, position) => Math.max(greatest, position.finishDurationSeconds),
     0,
   );
+  const finisherRanks = deriveFinisherRanks(snapshot.positions);
 
   return Object.freeze(
-    snapshot.positions.map((position) =>
-      Object.freeze({
+    snapshot.positions.map((position) => {
+      const finisherRank = finisherRanks.get(position.id);
+      if (finisherRank === undefined) {
+        throw new RangeError(`Missing finisher rank for participant ${position.id}`);
+      }
+      return Object.freeze({
         ...position,
         coordinate: Object.freeze({ ...position.coordinate }),
         simulationTimeSeconds: snapshot.simulationTimeSeconds,
+        finisherRank,
+        icon: Object.freeze({
+          kind: showFinisherNumbers ? 'finisher-number' : 'default',
+          rank: showFinisherNumbers ? finisherRank : null,
+        }),
         style: markerStyleForPosition(position, greatestFinishDurationSeconds),
-      }),
-    ),
+      });
+    }),
   );
 }
 
 export function buildMarkerRenderModel(
   snapshot: SimulationSnapshot,
+  showFinisherNumbers = false,
 ): MarkerRenderModel {
   assertValidSnapshot(snapshot);
   return Object.freeze({
     simulationTimeSeconds: snapshot.simulationTimeSeconds,
-    markers: buildMarkerDescriptors(snapshot),
+    markers: buildMarkerDescriptors(snapshot, showFinisherNumbers),
   });
 }
 
@@ -312,7 +348,7 @@ export function buildVisualizationRenderModel(
 ): VisualizationRenderModel {
   assertValidSnapshot(snapshot);
   const settings = options.densitySettings ?? options.settings;
-  const markers = buildMarkerDescriptors(snapshot);
+  const markers = buildMarkerDescriptors(snapshot, options.showFinisherNumbers);
   const density = settings !== undefined
     ? aggregateDensity(snapshot.positions, settings, options.center)
     : aggregateDensity(snapshot.positions, options.gridSizeMeters, options.center);

@@ -55,6 +55,7 @@ export function createInitialApplicationState(): ApplicationState {
     simulationTimeSeconds: 0,
     playback: 'paused',
     layers: { markers: true, density: true },
+    showFinisherNumbers: false,
     densitySettings: restoredDensity.settings,
     validation: restoredDensity.validation,
     snapshot: null,
@@ -211,6 +212,16 @@ export function toggleLayer(
   return setLayerVisibility(state, layer, !state.layers[layer]);
 }
 
+export function setShowFinisherNumbers(
+  state: ApplicationState,
+  visible: boolean,
+): ApplicationState {
+  if (typeof visible !== 'boolean') {
+    throw new TypeError('Show finisher numbers must be boolean');
+  }
+  return validState({ ...state, showFinisherNumbers: visible });
+}
+
 export function updateSnapshot(
   state: ApplicationState,
   snapshot: SimulationSnapshot,
@@ -304,21 +315,31 @@ export class AppController {
       const layersChanged = previousState === null
         || previousState.layers.markers !== nextState.layers.markers
         || previousState.layers.density !== nextState.layers.density;
+      const finisherNumbersChanged = previousState === null
+        || previousState.showFinisherNumbers !== nextState.showFinisherNumbers;
 
       if (courseChanged && nextState.course !== null) {
         (this.mapView.renderCourse ?? this.mapView.setCourse)?.(nextState.course);
       }
       if (snapshotChanged) {
         if (this.mapView.renderSnapshotOrClear !== undefined) {
-          this.mapView.renderSnapshotOrClear(nextState.snapshot);
+          this.mapView.renderSnapshotOrClear(nextState.snapshot, nextState.showFinisherNumbers);
         } else if (nextState.snapshot !== null) {
-          this.mapView.renderSnapshot?.(nextState.snapshot);
+          this.mapView.renderSnapshot?.(nextState.snapshot, nextState.showFinisherNumbers);
         }
-      } else if (densitySettingsChanged) {
-        if (nextState.snapshot !== null) {
-          this.mapView.renderDensity?.(nextState.snapshot, nextState.densitySettings);
-        } else {
-          this.mapView.setDensitySettings?.(nextState.densitySettings);
+      } else {
+        if (finisherNumbersChanged && nextState.snapshot !== null) {
+          this.mapView.renderMarkerPresentation?.(
+            nextState.snapshot,
+            nextState.showFinisherNumbers,
+          );
+        }
+        if (densitySettingsChanged) {
+          if (nextState.snapshot !== null) {
+            this.mapView.renderDensity?.(nextState.snapshot, nextState.densitySettings);
+          } else {
+            this.mapView.setDensitySettings?.(nextState.densitySettings);
+          }
         }
       }
       if (layersChanged) {
@@ -377,6 +398,10 @@ export class AppController {
 
   public setLayerVisibility(layer: LayerName, visible: boolean): ApplicationState {
     return this.commit(setLayerVisibility(this.currentState, layer, visible));
+  }
+
+  public setShowFinisherNumbers(visible: boolean): ApplicationState {
+    return this.commit(setShowFinisherNumbers(this.currentState, visible));
   }
 
   public toggleLayer(layer: LayerName): ApplicationState {

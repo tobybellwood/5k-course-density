@@ -35,6 +35,8 @@ The Course Density Visualization Tool is a static browser application for explor
 - **Finished Marker**: A participant marker whose Route Fraction is greater than or equal to 1.
 - **Longest Finisher**: Every participant whose Finish Duration equals the greatest Finish Duration in the current Participant Records.
 - **Bright Yellow Highlight**: The default-enabled marker colour `#ffff00` used for every Longest Finisher.
+- **Show Finisher Numbers Switch**: A keyboard-accessible, default-off presentation control that replaces participant marker icons with their competition-ranked finisher numbers.
+- **Finisher Rank**: A one-based competition rank calculated from ascending Finish Duration, where equal durations share a rank and later ranks include the skipped positions.
 
 ## Requirements
 
@@ -138,3 +140,21 @@ The Course Density Visualization Tool is a static browser application for explor
 6. WHEN the Static Visualization Tool derives Marker Style from a current SimulationSnapshot, THE Static Visualization Tool SHALL preserve Simulation Time, Participant Positions, Density Layer output, and Playback State.
 7. WHEN the Static Visualization Tool applies Marker Style, THE Static Visualization Tool SHALL preserve participant popup content and safe text rendering for participant display names.
 8. THE Static Visualization Tool SHALL enable Finished Marker translucency and Bright Yellow Highlight styling by default without adding user-facing marker-style settings.
+
+### Requirement 8: Show finisher numbers on participant markers
+
+**User Story:** As a race analyst, I want to optionally show finisher ranks on participant markers, so that I can identify relative finishing order while preserving the movement and congestion views.
+
+#### Acceptance Criteria
+
+1. WHEN the Static Visualization Tool initializes, THE Show Finisher Numbers Switch SHALL be present, keyboard accessible, and off by default, and participant markers SHALL use their default icons without finisher numbers.
+2. WHEN the Show Finisher Numbers Switch is enabled, THE Static Visualization Tool SHALL replace each valid participant marker's icon with that participant's Finisher Rank based on ascending Finish Duration, with the fastest Finish Duration ranked first.
+3. WHEN multiple participants have the same Finish Duration, THE Static Visualization Tool SHALL assign them the same Finisher Rank and SHALL use competition ranking so a sequence such as `1, 2, 2, 4` is produced.
+4. WHEN the Static Visualization Tool derives Finisher Ranks, THE Static Visualization Tool SHALL calculate each rank from the current Participant Records using `1 +` the number of records with a strictly shorter Finish Duration, so the rank remains stable across SimulationSnapshot rerenders and does not depend on participant marker order or Simulation Time.
+5. WHEN a user toggles the Show Finisher Numbers Switch, THE Static Visualization Tool SHALL change only marker presentation and SHALL preserve marker positions, marker opacity, Bright Yellow Highlight styling, popup content, Density Layer output, Simulation Time, Playback State, and all simulation state.
+6. WHEN the Show Finisher Numbers Switch is disabled after being enabled, THE Static Visualization Tool SHALL restore each participant marker's default icon without changing the participant's Finisher Rank, position, opacity, Bright Yellow Highlight styling, popup content, Density Layer output, Simulation Time, Playback State, or other simulation state.
+7. WHEN a longest finisher is displayed while the Show Finisher Numbers Switch is enabled, THE Static Visualization Tool SHALL retain the Bright Yellow Highlight and default opaque opacity while displaying that participant's Finisher Rank; the rank icon SHALL not override longest-finisher styling.
+8. WHEN the Static Visualization Tool displays the Show Finisher Numbers Switch, THE control SHALL have an explicit accessible label, support keyboard operation, and expose its on/off state in status text without requiring users to infer the state from marker appearance.
+9. WHEN the viewport is narrow, THE Show Finisher Numbers Switch, its label, status text, and the map SHALL remain readable and usable without clipping or obscuring playback or density controls.
+10. WHEN the Static Visualization Tool renders a finisher-number icon, THE Static Visualization Tool SHALL render the numeric Finisher Rank through safe text rendering and SHALL continue to render participant popup names through safe text APIs without inserting user-provided text as markup.
+11. WHEN the Static Visualization Tool rerenders markers for a later SimulationSnapshot with the same Participant Records, THE Static Visualization Tool SHALL preserve each participant's Finisher Rank and switch state while updating only the fields affected by the new snapshot.

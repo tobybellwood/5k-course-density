@@ -89,8 +89,15 @@ export type MarkerStyle = {
   readonly colour: 'default' | 'bright-yellow';
 };
 
+export type MarkerIcon = {
+  readonly kind: 'default' | 'finisher-number';
+  readonly rank: number | null;
+};
+
 export type MarkerDescriptor = ParticipantPosition & {
   readonly simulationTimeSeconds: number;
+  readonly finisherRank: number;
+  readonly icon: MarkerIcon;
   readonly style: MarkerStyle;
 };
 
@@ -184,6 +191,7 @@ export interface ApplicationState {
     readonly markers: boolean;
     readonly density: boolean;
   };
+  readonly showFinisherNumbers: boolean;
   readonly densitySettings: DensitySettings;
   readonly validation: ValidationSummary;
   readonly snapshot: SimulationSnapshot | null;

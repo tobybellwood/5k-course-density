@@ -65,6 +65,10 @@ function response(text: string): Response {
 }
 
 describe('AppController state transitions', () => {
+  it('initializes finisher-number presentation disabled', () => {
+    expect(new AppController().state.showFinisherNumbers).toBe(false);
+  });
+
   it('commits valid inputs atomically and retains references and derived state after failed replacements', () => {
     const controller = new AppController();
     const course = courseAt(51);
@@ -182,6 +186,82 @@ describe('AppController state transitions', () => {
     expect(invalid.playback).toBe(updated.playback);
     expect(invalid.validation.reasonCounts['invalid-density-minimum']).toBe(1);
     expect(mapView.renderDensity).toHaveBeenCalledTimes(1);
+  });
+
+  it('changes only marker presentation when finisher numbers toggle', () => {
+    const course = courseAt(51);
+    const participants = [
+      participant('runner-1', 'Alex Runner', 60),
+      participant('runner-2', 'Sam Runner', 120),
+    ];
+    const mapView = {
+      renderSnapshotOrClear: vi.fn(),
+      renderMarkerPresentation: vi.fn(),
+      renderDensity: vi.fn(),
+      syncLayerVisibility: vi.fn(),
+    };
+    const controller = new AppController({ mapView });
+    controller.loadInitial(success(course), success(participants));
+    controller.updateSnapshot(simulate(course, participants, 30));
+    controller.setPlayback('running');
+    const before = controller.state;
+    const beforeSnapshot = before.snapshot;
+    const beforePositions = beforeSnapshot?.positions;
+    const beforeSimulationState = {
+      course: before.course,
+      participants: before.participants,
+      totalDurationSeconds: before.totalDurationSeconds,
+      simulationTimeSeconds: before.simulationTimeSeconds,
+      playback: before.playback,
+      layers: before.layers,
+      densitySettings: before.densitySettings,
+      validation: before.validation,
+    };
+    mapView.renderSnapshotOrClear.mockClear();
+    mapView.renderMarkerPresentation.mockClear();
+    mapView.renderDensity.mockClear();
+    mapView.syncLayerVisibility.mockClear();
+
+    const enabled = controller.setShowFinisherNumbers(true);
+
+    expect(enabled.showFinisherNumbers).toBe(true);
+    expect({
+      course: enabled.course,
+      participants: enabled.participants,
+      totalDurationSeconds: enabled.totalDurationSeconds,
+      simulationTimeSeconds: enabled.simulationTimeSeconds,
+      playback: enabled.playback,
+      layers: enabled.layers,
+      densitySettings: enabled.densitySettings,
+      validation: enabled.validation,
+    }).toEqual(beforeSimulationState);
+    expect(enabled.participants[0]).toBe(before.participants[0]);
+    expect(enabled.snapshot).toBe(beforeSnapshot);
+    expect(enabled.snapshot?.positions).toBe(beforePositions);
+    expect(mapView.renderSnapshotOrClear).not.toHaveBeenCalled();
+    expect(mapView.renderDensity).not.toHaveBeenCalled();
+    expect(mapView.syncLayerVisibility).not.toHaveBeenCalled();
+    expect(mapView.renderMarkerPresentation).toHaveBeenCalledWith(beforeSnapshot, true);
+
+    const disabled = controller.setShowFinisherNumbers(false);
+    expect(disabled.showFinisherNumbers).toBe(false);
+    expect({
+      course: disabled.course,
+      participants: disabled.participants,
+      totalDurationSeconds: disabled.totalDurationSeconds,
+      simulationTimeSeconds: disabled.simulationTimeSeconds,
+      playback: disabled.playback,
+      layers: disabled.layers,
+      densitySettings: disabled.densitySettings,
+      validation: disabled.validation,
+    }).toEqual(beforeSimulationState);
+    expect(disabled.participants[0]).toBe(before.participants[0]);
+    expect(disabled.snapshot).toBe(beforeSnapshot);
+    expect(disabled.snapshot?.positions).toBe(beforePositions);
+    expect(mapView.renderSnapshotOrClear).not.toHaveBeenCalled();
+    expect(mapView.renderDensity).not.toHaveBeenCalled();
+    expect(mapView.syncLayerVisibility).not.toHaveBeenCalled();
+    expect(mapView.renderMarkerPresentation).toHaveBeenLastCalledWith(beforeSnapshot, false);
   });
 
   it('keeps playback unavailable while either required input is missing', () => {

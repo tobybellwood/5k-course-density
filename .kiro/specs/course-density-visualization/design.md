@@ -2,7 +2,7 @@
 
 ## Overview
 
-Build a static browser application with vanilla TypeScript, Vite, Leaflet, and a small pure-function domain layer. The application loads the supplied GPX route and saved results HTML from bundled example assets, parses optional local replacements in the browser, infers participant positions using constant pace, and renders synchronized marker and density layers during 60x playback.
+Build a static browser application with vanilla TypeScript, Vite, Leaflet, and a small pure-function domain layer. The application loads the supplied GPX route and saved results HTML from bundled example assets, parses optional local replacements in the browser, infers participant positions using constant pace, and renders synchronized marker and density layers during 60x playback. A default-off presentation switch can replace marker icons with stable competition-ranked finisher numbers without changing simulation behavior.
 
 The design keeps all domain calculations independent of the map and DOM. This makes parsing, timing, interpolation, and density behavior testable without a browser while keeping file handling and Leaflet integration small. The production build is static output that can be hosted from any static file server or opened through a local development server.
 
@@ -18,6 +18,7 @@ The design keeps all domain calculations independent of the map and DOM. This ma
 - Provide deterministic playback controls at exactly 60 simulated seconds per real second.
 - Expose density Grid Size, Minimum People-per-Circle Filter, and optional Warning Colour Threshold settings with immediate updates.
 - Keep density settings in the current browser session only and preserve the existing visualization defaults.
+- Provide a default-off `Show finisher numbers` presentation switch that can replace marker icons with stable competition ranks.
 - Keep parsing and simulation usable in tests without Leaflet or browser timing APIs.
 
 ### Non-goals
@@ -102,13 +103,16 @@ interface ApplicationState {
   simulationTimeSeconds: number;
   playback: 'running' | 'paused' | 'complete';
   layers: { markers: boolean; density: boolean };
+  showFinisherNumbers: boolean;
   densitySettings: DensitySettings;
   validation: ValidationSummary;
   snapshot: SimulationSnapshot | null;
 }
 ```
 
-A successful course or participant replacement commits only after parsing and validation complete. The commit resets simulation time to zero, recomputes the total duration and snapshot, and requests one render. A failed replacement returns a validation update while leaving the corresponding prior input and all derived data unchanged. A valid density-setting change is a separate derived-state update: it recomputes density from the current snapshot, preserves simulation time, playback state, and participant positions, and requests one render. Invalid settings update validation notices without replacing the active settings.
+A successful course or participant replacement commits only after parsing and validation complete. The commit resets simulation time to zero, recomputes the total duration and snapshot, and requests one render. A failed replacement returns a validation update while leaving the corresponding prior input and all derived data unchanged. A valid density-setting change is a separate derived-state update: it recomputes density from the current snapshot, preserves simulation time, playback state, and participant positions, and requests one render. A finisher-number toggle is a presentation-only state transition: it updates `showFinisherNumbers`, rebuilds marker icons from the current snapshot, and preserves the snapshot, density output, simulation time, playback state, positions, opacity, longest-finisher styling, and popup fields. Invalid settings update validation notices without replacing the active settings.
+
+`showFinisherNumbers` initializes to `false` for every browser session and is not persisted in session storage. The controller computes a stable competition rank for each participant as `1 +` the number of current records with a strictly shorter finish duration. The rank depends only on the participant records and therefore remains unchanged when snapshots rerender at different simulation times or in different marker orders.
 
 Density settings are initialized to a 25-meter Grid Size, a Minimum People-per-Circle Filter of 1, and no Warning Colour Threshold. The controller restores valid settings from browser-session storage when available, validates the restored values, and falls back to defaults if storage is unavailable or contains invalid data. It does not use persistent storage across browser sessions.
 
@@ -122,6 +126,7 @@ Density settings are initialized to a 25-meter Grid Size, a Minimum People-per-C
 - Converts parser results into transactional state commits.
 - Enables playback only when both a valid course and at least one participant exist.
 - Validates density-setting edits, persists accepted settings for the current browser session, and recomputes density immediately without resetting playback or participant positions.
+- Owns the default-off `showFinisherNumbers` presentation state and toggles marker icon rendering without invoking simulation or density transitions.
 - Sends one `SimulationSnapshot` to both map layer builders for every time change.
 
 ### `GpxParser`
@@ -171,19 +176,22 @@ Density settings are initialized to a 25-meter Grid Size, a Minimum People-per-C
 - Maintains separate route, marker, density, and optional basemap layer groups.
 - Replaces marker and density contents from the same snapshot rather than incrementally deriving one layer from the other.
 - Applies each `MarkerDescriptor.style` while creating the marker: default opacity is 1, a finished non-longest marker uses opacity 0.35, and a longest-finisher marker uses a bright-yellow visual treatment with opacity 1.
+- When `showFinisherNumbers` is true, replaces each marker's default icon with a numeric icon containing the descriptor's stable competition rank. The numeric icon preserves the descriptor's opacity and bright-yellow longest-finisher treatment; when false, it uses the default icon.
 - Keeps popup construction independent from marker styling so participant name, finish duration, simulation time, and safe text-node rendering remain unchanged.
+- Rebuilds only marker presentation for a finisher-number toggle from the current snapshot and rank map; it does not recompute participant positions or density cells.
 - Accepts the active Density Settings for density rendering and can replace only the density group when settings change, leaving route and marker layers untouched.
 - Attaches a popup to each marker with participant name, finish duration, and current simulation time.
 - Applies visibility toggles without changing application state outside `layers`.
 
 ### `domView`
 
-- Binds GPX and HTML file inputs, playback buttons, reset button, layer checkboxes, status fields, and notice region.
-- Displays simulation time, total duration, playback state, valid participant count, excluded-row summary, active density settings, legend state, and notices.
+- Binds GPX and HTML file inputs, playback buttons, reset button, layer checkboxes, the `Show finisher numbers` switch, status fields, and notice region.
+- Displays simulation time, total duration, playback state, valid participant count, excluded-row summary, active density settings, finisher-number switch state, legend state, and notices.
 - Sets `aria-live="polite"` on the notice, status, and density-settings summary regions.
-- Gives every density control an explicit label, keyboard operation, associated validation message, and current-value text; the warning threshold exposes a keyboard-selectable disabled state.
+- Gives every density control and the finisher-number switch an explicit label, keyboard operation, associated validation message or state text, and current-value text; the warning threshold exposes a keyboard-selectable disabled state.
+- Keeps the finisher-number switch default-off on initialization, does not persist it across browser sessions, and keeps its label and status readable at narrow widths.
 - Disables start/pause/reset playback controls when required input is missing; reset-to-example remains available.
-- Never builds user-provided names through `innerHTML`; popup and status values are escaped or assigned through text nodes.
+- Never builds user-provided names through `innerHTML`; popup, status, and marker-icon values are escaped or assigned through text nodes. Numeric finisher ranks are generated values and are rendered as text rather than markup.
 
 ## Data Models
 
@@ -216,9 +224,16 @@ type MarkerStyle = {
   colour: 'default' | 'bright-yellow';
 };
 
+type MarkerIcon = {
+  kind: 'default' | 'finisher-number';
+  rank: number | null;
+};
+
 type MarkerDescriptor = ParticipantPosition & {
   simulationTimeSeconds: number;
   style: MarkerStyle;
+  finisherRank: number;
+  icon: MarkerIcon;
 };
 
 type SimulationSnapshot = {
@@ -279,6 +294,8 @@ function validateDensitySettings(input: unknown, current: DensitySettings):
   | { ok: true; settings: DensitySettings }
   | { ok: false; reason: 'invalid-density-grid-size' | 'invalid-density-minimum' | 'invalid-density-warning-threshold' };
 function aggregateDensity(positions: ParticipantPosition[], settings: DensitySettings, courseCenter: Coordinate): DensityCell[];
+function buildMarkerDescriptors(snapshot: SimulationSnapshot, showFinisherNumbers: boolean): MarkerDescriptor[];
+function finisherRank(records: ParticipantRecord[], participantId: string): number;
 ```
 
 Participant IDs should be stable within one parsed result set. Use the normalized row index plus a collision suffix when names repeat. Names remain display values and are not used as unique keys.
@@ -334,9 +351,19 @@ The default `gridSizeMeters` is 25, the default minimum is 1, and the default wa
 2. A non-longest participant with `routeFraction >= 1` receives the default colour and `opacity: 0.35`.
 3. A non-longest participant with `routeFraction < 1` receives the default colour and `opacity: 1`.
 
-The Leaflet adapter maps `bright-yellow` to the fixed colour token `#ffff00`. The adapter applies opacity and colour while creating or replacing marker layers. No marker-style setting is added to `ApplicationState` or the DOM controls, so the behavior is enabled by default.
+The Leaflet adapter maps `bright-yellow` to the fixed colour token `#ffff00`. The adapter applies opacity and colour while creating or replacing marker layers. Finished-marker styling has no user-facing setting; it remains enabled by default. The separate `showFinisherNumbers` presentation switch controls only whether the marker icon displays a rank.
 
 Marker style is derived during each snapshot render and does not mutate the snapshot, participant positions, simulation time, density cells, or playback state. The same snapshot continues to supply both marker descriptors and density aggregation. Re-rendering a later snapshot recomputes styles, which updates boundary and post-finish appearance without changing the simulation transition itself. Popup construction continues to consume the marker descriptor's existing display fields and DOM text nodes, so popup content and safe participant-name rendering are unchanged.
+
+### Finisher-number icon presentation
+
+Finisher ranks are derived from the current `ParticipantRecord[]`, not from marker positions or the current simulation time. For each participant, compute `1 + count(records where finishDurationSeconds < participant.finishDurationSeconds)`. This gives one-based competition ranking: equal durations share a rank and skipped positions follow the tie. The result is keyed by stable participant ID and is therefore unchanged by snapshot order or rerender time.
+
+`buildMarkerDescriptors(snapshot, showFinisherNumbers)` attaches the stable `finisherRank` to every descriptor and selects `icon.kind: 'finisher-number'` only when the switch is enabled; otherwise it selects `icon.kind: 'default'`. Icon selection is a render transformation only. It must preserve the existing `MarkerStyle`, including opacity 0.35 for a finished non-longest participant and bright-yellow colour with opacity 1 for every longest finisher. A longest finisher's rank icon uses the bright-yellow treatment rather than replacing it.
+
+The Leaflet adapter creates the finisher-number icon from a DOM element and assigns the rank with a text node or `textContent`. It never interpolates participant display names or other user-provided values into icon markup. Popup construction remains separate and continues to use safe text nodes for participant names, finish duration, and current simulation time.
+
+When the switch changes, `AppController` updates only the presentation field and asks the map view to rebuild marker icons from the current snapshot and stable rank map. It does not call `simulate`, recompute density, alter layer visibility, advance playback, reset time, or replace popup data. The switch remains false on initialization and is not restored from session storage.
 
 ### Playback timing
 
@@ -361,7 +388,8 @@ Publish one snapshot after each update. The controller stops at the terminal tim
 7. Each playback tick calls `SimulationEngine`, then sends the resulting snapshot to `LeafletMapView.renderSnapshot` and `domView.renderStatus`.
 8. Marker and density builders consume the same snapshot object. Layer visibility is applied after both are built and does not trigger simulation.
 9. A valid density-setting event validates and stores the new settings, recomputes only the density render model from the current snapshot, and updates the map, legend, and status synchronously without invoking playback reset or advancing the clock.
-10. The settings store uses browser-session storage for the validated settings object. Read failures, malformed stored values, or values that violate the cross-field threshold rule produce a notice and restore defaults; no persistent storage API is used.
+10. A finisher-number switch event updates only `showFinisherNumbers`, rebuilds marker icon presentation from the current snapshot and stable ranks, and updates the switch status without invoking simulation, density aggregation, playback reset, or popup reconstruction.
+11. The settings store uses browser-session storage for the validated settings object. Read failures, malformed stored values, or values that violate the cross-field threshold rule produce a notice and restore defaults; no persistent storage API is used.
 
 ## Error Handling
 
@@ -386,8 +414,9 @@ The page has a header, a control/status panel, and a map region. The control pan
 - `Start`, `Pause`, and `Reset playback` buttons.
 - `Reset to built-in example` button.
 - Marker and density layer checkboxes, checked by default.
+- A labeled `Show finisher numbers` checkbox, unchecked by default, with status text that says whether rank icons are shown.
 - Density settings controls: a labeled select for Grid Size with 10 m, 25 m, 50 m, and 100 m options; a labeled numeric input for Minimum People-per-Circle Filter with a minimum of 1; and a labeled numeric input or select for Warning Colour Threshold with an explicit `Disabled` option.
-- Current time, total time, playback state, participant count, active density settings, and warning-threshold state.
+- Current time, total time, playback state, participant count, active density settings, warning-threshold state, and finisher-number switch state.
 - A density legend that labels the normal low/medium/high colours, identifies the warning colour when enabled, and states that cells below the minimum filter are hidden.
 - Validation summary and an `aria-live` notice region.
 
@@ -407,6 +436,9 @@ Cover:
 - Unsupported extension and forced file-read failure identify the file and accepted type.
 - Start from a paused non-zero time, pause without changes, reset to zero, and complete at the final time.
 - Marker popup includes display name, finish duration, and current simulation time.
+- Finisher-number presentation is off by default, shows no rank icon when off, shows one unique rank for each unique finish duration when on, and produces competition ranks such as `1, 2, 2, 4` for ties.
+- Finisher-number toggle and later snapshot rerenders preserve each participant's stable rank and change only marker icon presentation; marker position, opacity, bright-yellow longest-finisher styling, density output, playback state, and simulation time remain unchanged.
+- Longest-finisher markers retain bright-yellow styling and opaque opacity when rank icons are enabled, including tied longest finishers.
 - Marker style renders unfinished participants opaque, applies opacity 0.35 at the exact finish boundary and after finishing, highlights the longest finisher in bright yellow before and after finishing, highlights every tied longest finisher, and gives yellow precedence over finished translucency.
 - Marker style recomputation on snapshot rerender changes only marker appearance; simulation time, participant positions, density output, and playback state remain unchanged.
 - Route fit, simultaneous default layers, and replacement reset are tested through the Leaflet adapter with a mocked map.
@@ -414,6 +446,7 @@ Cover:
 - Density settings initialize to 25 m, minimum 1, and disabled warning threshold; valid edits apply immediately, invalid edits retain the prior value, and session restoration does not cross a new browser session.
 - Warning threshold equality uses the warning colour, values below the threshold use normal colours, and the threshold validator rejects values equal to or below the minimum filter.
 - Playback time, playback state, and participant positions remain unchanged when density settings change while paused or running.
+- The finisher-number switch has an accessible label and keyboard behavior, is off by default, preserves playback while toggled on and off, keeps popup content and safe participant-name rendering intact, retains longest-finisher styling, and remains usable at a narrow viewport.
 - Density controls, status text, legend labels, keyboard access, narrow layouts, and browser-session behavior are covered by browser integration tests.
 
 ### Property tests
@@ -546,6 +579,18 @@ For any valid application state and current SimulationSnapshot, deriving or appl
 
 **Validates: Requirements 7.6, 7.7**
 
+### Property 20: Finisher ranks are stable competition ranks
+
+For any non-empty valid Participant Records collection, each participant's Finisher Rank SHALL equal `1 +` the number of records with a strictly shorter Finish Duration. Equal durations SHALL receive equal ranks, unique durations SHALL receive unique ranks, and the resulting sequence SHALL follow competition ranking such as `1, 2, 2, 4` regardless of input order or participant ID order.
+
+**Validates: Requirements 8.2, 8.3, 8.4**
+
+### Property 21: Finisher-number presentation is isolated from simulation and marker state
+
+For any valid application state and current SimulationSnapshot, toggling `showFinisherNumbers` SHALL change only each marker's icon kind and numeric rank presentation. It SHALL preserve marker coordinates, route fractions, opacity, colour including bright-yellow longest-finisher styling, popup fields, density cells, Simulation Time, Playback State, layer visibility, and the stable Finisher Ranks. Re-rendering a later snapshot with the same Participant Records SHALL preserve the same rank for each participant.
+
+**Validates: Requirements 8.5, 8.6, 8.7, 8.11**
+
 
 The remaining acceptance criteria are deliberately covered by example, edge-case, integration, or smoke tests rather than universal properties:
 
@@ -561,6 +606,7 @@ The remaining acceptance criteria are deliberately covered by example, edge-case
 - Accessible controls, active-setting status, legend behavior, keyboard operation, responsive layout, and browser behavior: browser integration tests for 6.7.
 - Finished-marker opacity boundary, longest-finisher highlighting, tied longest finishers, highlight precedence, and snapshot-only styling: unit/property tests for 7.1 through 7.6.
 - Popup preservation, safe participant names, default-enabled behavior, and absence of new marker-style controls: mocked-map and browser smoke/integration tests for 7.7 and 7.8.
+- Finisher-number switch default-off behavior, accessible label and keyboard operation, status text, narrow-layout usability, safe rank and popup rendering, browser rerender behavior, and playback preservation: unit, mocked-map, and browser integration tests for 8.1, 8.5 through 8.11.
 
 This split prevents external map behavior and one-time configuration checks from being mistaken for property-based tests while retaining direct coverage for every acceptance criterion.
 
@@ -570,7 +616,7 @@ This split prevents external map behavior and one-time configuration checks from
 2. Implement domain types, validation summaries, duration parsing, haversine geometry, and GPX/results parsers.
 3. Implement simulation, distance-based interpolation, and density aggregation with no browser dependencies.
 4. Implement application state transitions and transactional replacement handling.
-5. Add Leaflet map creation, route fitting, marker popups, density circles, and layer toggles.
+5. Add Leaflet map creation, route fitting, marker popups, default and finisher-number marker icons, density circles, and layer toggles.
 6. Add playback controller and connect its snapshot stream to the map and status view.
-7. Add responsive styles, accessibility labels, notices, and example reset behavior.
+7. Add responsive styles, accessible labels, the default-off finisher-number switch, notices, and example reset behavior.
 8. Run unit/property tests, then browser integration tests against the built static app.

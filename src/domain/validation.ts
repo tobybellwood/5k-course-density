@@ -561,6 +561,7 @@ export function isValidApplicationState(value: unknown): value is ApplicationSta
     state.layers !== null &&
     typeof state.layers.markers === 'boolean' &&
     typeof state.layers.density === 'boolean' &&
+    typeof state.showFinisherNumbers === 'boolean' &&
     isValidDensitySettings(state.densitySettings) &&
     isValidValidationSummary(state.validation) &&
     (state.snapshot === null || isValidSimulationSnapshot(state.snapshot))
@@ -577,6 +578,9 @@ export function createApplicationState(
   // returned ApplicationState carries the validated settings model.
   const candidateWithDefaults = {
     ...candidate,
+    showFinisherNumbers: candidate.showFinisherNumbers === undefined
+      ? false
+      : candidate.showFinisherNumbers,
     densitySettings: candidate.densitySettings === undefined
       ? { gridSizeMeters: 25 as const, minimumPeoplePerCircle: 1, warningColourThreshold: null }
       : candidate.densitySettings,

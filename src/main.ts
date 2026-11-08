@@ -26,6 +26,7 @@ export async function bootstrapApplication(
   let renderedCourse = appController.state.course;
   let renderedSnapshot = appController.state.snapshot;
   let renderedDensitySettings = appController.state.densitySettings;
+  let renderedShowFinisherNumbers = appController.state.showFinisherNumbers;
   let mapNotice: string | null = null;
 
   try {
@@ -60,16 +61,23 @@ export async function bootstrapApplication(
       const densitySettingsChanged = state.densitySettings.gridSizeMeters !== renderedDensitySettings.gridSizeMeters
         || state.densitySettings.minimumPeoplePerCircle !== renderedDensitySettings.minimumPeoplePerCircle
         || state.densitySettings.warningColourThreshold !== renderedDensitySettings.warningColourThreshold;
+      const finisherNumbersChanged = state.showFinisherNumbers !== renderedShowFinisherNumbers;
       if (snapshotChanged) {
-        mapView.renderSnapshotOrClear(state.snapshot);
+        mapView.renderSnapshotOrClear(state.snapshot, state.showFinisherNumbers);
         renderedSnapshot = state.snapshot;
-      } else if (densitySettingsChanged) {
-        if (state.snapshot !== null) {
-          mapView.renderDensity(state.snapshot, state.densitySettings);
-        } else {
-          mapView.setDensitySettings(state.densitySettings);
+      } else {
+        if (finisherNumbersChanged && state.snapshot !== null) {
+          mapView.renderMarkerPresentation(state.snapshot, state.showFinisherNumbers);
+        }
+        if (densitySettingsChanged) {
+          if (state.snapshot !== null) {
+            mapView.renderDensity(state.snapshot, state.densitySettings);
+          } else {
+            mapView.setDensitySettings(state.densitySettings);
+          }
         }
       }
+      renderedShowFinisherNumbers = state.showFinisherNumbers;
       renderedDensitySettings = state.densitySettings;
       mapView.syncLayerVisibility(state.layers);
     } catch (error) {
@@ -124,6 +132,9 @@ export async function bootstrapApplication(
     },
     onDensityVisibilityChange: (visible) => {
       appController.setLayerVisibility('density', visible);
+    },
+    onShowFinisherNumbersChange: (visible) => {
+      appController.setShowFinisherNumbers(visible);
     },
     onDensitySettingsChanged: (settings) => {
       appController.updateDensitySettings(settings);

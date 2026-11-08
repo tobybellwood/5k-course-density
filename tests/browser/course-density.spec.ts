@@ -31,6 +31,8 @@ const markerStyleResults = `<!doctype html>
   </tbody>
 </table>`;
 
+const finisherNumberResults = markerStyleResults.replace('1:00', '10:00');
+
 const invalidCourse = '<gpx><trk><trkseg><trkpt lat="not-a-lat" lon="148.0" /></trkseg></trk></gpx>';
 const invalidResults = '<!doctype html><table><tr><th>Name</th><th>Time</th></tr><tr><td></td><td>1:23</td></tr></table>';
 
@@ -264,6 +266,161 @@ test.describe('built static course density application', () => {
     await expect(page.locator('.leaflet-popup img, .leaflet-popup b')).toHaveCount(0);
     await expect(page.locator('[id*="marker-style"], [data-marker-style-control]')).toHaveCount(0);
     await expect(page.getByText(/marker (style|opacity|colour)/i)).toHaveCount(0);
+  });
+
+  test('exposes an accessible finisher-number switch with a narrow responsive layout', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await loadBundledExample(page);
+
+    const finisherSwitch = page.getByRole('switch', { name: 'Show finisher numbers' });
+    await expect(finisherSwitch).toHaveCount(1);
+    await expect(finisherSwitch).toBeVisible();
+    await expect(finisherSwitch).not.toBeChecked();
+    await expect(finisherSwitch).toHaveAttribute('aria-describedby', 'finisher-numbers-status');
+    await expect(page.getByText('Show finisher numbers', { exact: true })).toBeVisible();
+    await expect(page.locator('#finisher-numbers-status')).toHaveText('Off');
+
+    await finisherSwitch.focus();
+    await expect(finisherSwitch).toBeFocused();
+    await page.keyboard.press('Space');
+    await expect(finisherSwitch).toBeChecked();
+    await expect(page.locator('#finisher-numbers-status')).toHaveText('On');
+    await expect(page.locator('#map .course-density-marker--number')).toHaveCount(
+      await page.locator('#map .leaflet-marker-icon').count(),
+    );
+
+    const layout = await page.evaluate(() => ({
+      documentWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
+      controlsWidth: document.querySelector<HTMLElement>('#visualization-controls')?.getBoundingClientRect().width ?? 0,
+      mapWidth: document.querySelector<HTMLElement>('#map')?.getBoundingClientRect().width ?? 0,
+    }));
+    expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+    expect(layout.controlsWidth).toBeGreaterThan(0);
+    expect(layout.mapWidth).toBeGreaterThan(0);
+
+    await page.keyboard.press('Space');
+    await expect(finisherSwitch).not.toBeChecked();
+    await expect(page.locator('#finisher-numbers-status')).toHaveText('Off');
+    await expect(page.locator('#map .course-density-marker--number')).toHaveCount(0);
+  });
+
+  test('preserves paused and running playback state while finisher icons rerender', async ({ page }) => {
+    await loadBundledExample(page);
+    await page.locator('#course-file-input').setInputFiles({
+      name: 'finisher-number-course.gpx',
+      mimeType: 'application/gpx+xml',
+      buffer: Buffer.from(markerStyleCourse),
+    });
+    await page.locator('#results-file-input').setInputFiles({
+      name: 'finisher-number-results.html',
+      mimeType: 'text/html',
+      buffer: Buffer.from(finisherNumberResults),
+    });
+    await expect(page.locator('#participant-count')).toHaveText('2');
+
+    const markers = page.locator('#map .leaflet-marker-icon');
+    const earlyMarker = markers.nth(0);
+    const longestMarker = markers.nth(1);
+    const densityPaths = page.locator('#map .leaflet-overlay-pane path');
+    await expect(markers).toHaveCount(2);
+    await expect(earlyMarker).toHaveCSS('opacity', '1');
+    await expect(longestMarker).toHaveClass(/course-density-marker--bright-yellow/);
+    await expect(longestMarker).toHaveCSS('opacity', '1');
+
+    const pausedBefore = await page.evaluate(() => ({
+      simulationTime: document.querySelector<HTMLElement>('#simulation-time')?.textContent ?? '',
+      playbackState: document.querySelector<HTMLElement>('#playback-state')?.textContent ?? '',
+      positions: Array.from(document.querySelectorAll<HTMLElement>('#map .leaflet-marker-icon')).map((marker) => marker.style.transform),
+      densityPathCount: document.querySelectorAll('#map .leaflet-overlay-pane path').length,
+    }));
+
+    await page.getByRole('switch', { name: 'Show finisher numbers' }).check();
+    await expect(page.locator('#finisher-numbers-status')).toHaveText('On');
+    await expect(page.locator('#map .course-density-marker--number')).toHaveCount(2);
+    await expect(page.locator('#map .course-density-marker--number span')).toHaveText(['1', '2']);
+    await expect(earlyMarker).toHaveCSS('opacity', '1');
+    await expect(longestMarker).toHaveClass(/course-density-marker--bright-yellow/);
+    await expect(longestMarker).toHaveCSS('opacity', '1');
+
+    const pausedAfter = await page.evaluate(() => ({
+      simulationTime: document.querySelector<HTMLElement>('#simulation-time')?.textContent ?? '',
+      playbackState: document.querySelector<HTMLElement>('#playback-state')?.textContent ?? '',
+      positions: Array.from(document.querySelectorAll<HTMLElement>('#map .leaflet-marker-icon')).map((marker) => marker.style.transform),
+      densityPathCount: document.querySelectorAll('#map .leaflet-overlay-pane path').length,
+    }));
+    expect(pausedAfter).toEqual(pausedBefore);
+
+    await longestMarker.click();
+    await expect(page.locator('.leaflet-popup')).toContainText('Participant: Longest & Safe');
+    await expect(page.locator('.leaflet-popup')).toContainText('Finish time: 10:00');
+    await expect(page.locator('.leaflet-popup img, .leaflet-popup b')).toHaveCount(0);
+    await page.locator('#map').click({ position: { x: 10, y: 10 } });
+
+    await page.locator('#start-playback-button').click();
+    await expect(page.locator('#playback-state')).toHaveText('Running');
+    await expect(page.locator('#simulation-time')).not.toHaveText('0:00', { timeout: 5_000 });
+    await expect(earlyMarker).toHaveCSS('opacity', '0.35', { timeout: 5_000 });
+
+    const runningToggle = await page.evaluate(() => {
+      const control = document.querySelector<HTMLInputElement>('#show-finisher-numbers');
+      if (control === null) {
+        throw new Error('Finisher-number switch is missing');
+      }
+      const before = {
+        simulationTime: document.querySelector<HTMLElement>('#simulation-time')?.textContent ?? '',
+        playbackState: document.querySelector<HTMLElement>('#playback-state')?.textContent ?? '',
+        positions: Array.from(document.querySelectorAll<HTMLElement>('#map .leaflet-marker-icon')).map((marker) => marker.style.transform),
+        densityPathCount: document.querySelectorAll('#map .leaflet-overlay-pane path').length,
+      };
+      control.checked = false;
+      control.dispatchEvent(new Event('change', { bubbles: true }));
+      const after = {
+        simulationTime: document.querySelector<HTMLElement>('#simulation-time')?.textContent ?? '',
+        playbackState: document.querySelector<HTMLElement>('#playback-state')?.textContent ?? '',
+        positions: Array.from(document.querySelectorAll<HTMLElement>('#map .leaflet-marker-icon')).map((marker) => marker.style.transform),
+        densityPathCount: document.querySelectorAll('#map .leaflet-overlay-pane path').length,
+      };
+      return { before, after };
+    });
+    expect(runningToggle.after).toEqual(runningToggle.before);
+    await expect(page.locator('#playback-state')).toHaveText('Running');
+    await expect(page.locator('#finisher-numbers-status')).toHaveText('Off');
+    await expect(page.locator('#map .course-density-marker--number')).toHaveCount(0);
+    await expect(longestMarker).toHaveAttribute('src', /marker-icon/);
+    await expect(longestMarker).toHaveClass(/course-density-marker--bright-yellow/);
+    await expect(longestMarker).toHaveCSS('opacity', '1');
+
+    await page.evaluate(() => {
+      const control = document.querySelector<HTMLInputElement>('#show-finisher-numbers');
+      if (control === null) {
+        throw new Error('Finisher-number switch is missing');
+      }
+      control.checked = true;
+      control.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await expect(page.locator('#finisher-numbers-status')).toHaveText('On');
+    await expect(page.locator('#map .course-density-marker--number span')).toHaveText(['1', '2']);
+    await expect(earlyMarker).toHaveCSS('opacity', '0.35');
+    await expect(longestMarker).toHaveClass(/course-density-marker--bright-yellow/);
+    await expect(longestMarker).toHaveCSS('opacity', '1');
+
+    const runningTime = await page.locator('#simulation-time').textContent();
+    await page.waitForTimeout(32);
+    await expect(page.locator('#playback-state')).toHaveText('Running');
+    await expect(page.locator('#simulation-time')).not.toHaveText(runningTime ?? '');
+    await expect(page.locator('#map .course-density-marker--number span')).toHaveText(['1', '2']);
+    await expect(earlyMarker).toHaveCSS('opacity', '0.35');
+    await expect(longestMarker).toHaveClass(/course-density-marker--bright-yellow/);
+    expect(await densityPaths.count()).toBeGreaterThan(1);
+
+    await page.locator('#pause-playback-button').click();
+    await expect(page.locator('#playback-state')).toHaveText('Paused');
+    await longestMarker.click();
+    await expect(page.locator('.leaflet-popup')).toContainText('Participant: Longest & Safe');
+    await expect(page.locator('.leaflet-popup')).toContainText('Finish time: 10:00');
+    await expect(page.locator('.leaflet-popup')).toContainText(`Simulation time: ${await page.locator('#simulation-time').textContent()}`);
+    await expect(page.locator('.leaflet-popup img, .leaflet-popup b')).toHaveCount(0);
   });
 
   test('exposes accessible density controls with active status and legend guidance', async ({ page }) => {

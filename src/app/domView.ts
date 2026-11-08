@@ -16,6 +16,7 @@ export type DomViewHandlers = {
   readonly onResetExample?: () => void | Promise<void>;
   readonly onMarkersVisibilityChange?: (visible: boolean) => void;
   readonly onDensityVisibilityChange?: (visible: boolean) => void;
+  readonly onShowFinisherNumbersChange?: (visible: boolean) => void;
   readonly onMarkersVisibilityChanged?: (visible: boolean) => void;
   readonly onDensityVisibilityChanged?: (visible: boolean) => void;
   /** Called after a density edit passes view-level validation. */
@@ -36,6 +37,8 @@ export type DomViewElements = {
   readonly resetPlaybackButton: HTMLButtonElement;
   readonly markersLayerToggle: HTMLInputElement;
   readonly densityLayerToggle: HTMLInputElement;
+  readonly showFinisherNumbersToggle: HTMLInputElement;
+  readonly finisherNumbersStatus: HTMLElement;
   readonly densityGridSize: HTMLSelectElement;
   readonly densityMinimum: HTMLInputElement;
   readonly densityWarningThreshold: HTMLSelectElement;
@@ -101,6 +104,8 @@ function collectElements(root: ParentNode): DomViewElements {
     resetPlaybackButton: requireElement<HTMLButtonElement>(root, '#reset-playback-button'),
     markersLayerToggle: requireElement<HTMLInputElement>(root, '#markers-layer-toggle'),
     densityLayerToggle: requireElement<HTMLInputElement>(root, '#density-layer-toggle'),
+    showFinisherNumbersToggle: requireElement<HTMLInputElement>(root, '#show-finisher-numbers'),
+    finisherNumbersStatus: requireElement<HTMLElement>(root, '#finisher-numbers-status'),
     densityGridSize: requireElement<HTMLSelectElement>(root, '#density-grid-size'),
     densityMinimum: requireElement<HTMLInputElement>(root, '#density-minimum'),
     densityWarningThreshold: requireElement<HTMLSelectElement>(root, '#density-warning-threshold'),
@@ -192,6 +197,7 @@ export class DomView {
       resetPlaybackButton,
       markersLayerToggle,
       densityLayerToggle,
+      showFinisherNumbersToggle,
       densityGridSize,
       densityMinimum,
       densityWarningThreshold,
@@ -220,6 +226,9 @@ export class DomView {
     });
     this.listen(densityLayerToggle, 'change', () => {
       (this.handlers.onDensityVisibilityChanged ?? this.handlers.onDensityVisibilityChange)?.(densityLayerToggle.checked);
+    });
+    this.listen(showFinisherNumbersToggle, 'change', () => {
+      this.handlers.onShowFinisherNumbersChange?.(showFinisherNumbersToggle.checked);
     });
     this.listen(densityGridSize, 'change', () => {
       this.handleDensityEdit({ gridSizeMeters: readNumber(densityGridSize.value) as DensitySettings['gridSizeMeters'] });
@@ -253,6 +262,7 @@ export class DomView {
     this.renderValidation(state.validation);
     this.elements.markersLayerToggle.checked = state.layers.markers;
     this.elements.densityLayerToggle.checked = state.layers.density;
+    this.renderFinisherNumbers(state.showFinisherNumbers);
 
     const hasRequiredInput = state.course !== null && state.participants.length > 0;
     this.elements.startPlaybackButton.disabled =
@@ -265,6 +275,11 @@ export class DomView {
   /** Alias used by the browser application composition root. */
   public renderState(state: ApplicationState): void {
     this.render(state);
+  }
+
+  private renderFinisherNumbers(visible: boolean): void {
+    this.elements.showFinisherNumbersToggle.checked = visible;
+    this.elements.finisherNumbersStatus.textContent = visible ? 'On' : 'Off';
   }
 
   public renderStatus(state: ApplicationState): void;
@@ -287,6 +302,9 @@ export class DomView {
     this.elements.playbackState.textContent = DEFAULT_PLAYBACK_STATE_LABELS[playback];
     this.elements.participantCount.textContent = String(participantCount);
     this.elements.excludedRowCount.textContent = String(excludedRowCount);
+    if (!isStatusViewModel) {
+      this.renderFinisherNumbers(stateOrStatus.showFinisherNumbers);
+    }
     this.renderDensitySettings(densitySettings);
 
     if (isStatusViewModel) {

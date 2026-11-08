@@ -307,3 +307,108 @@ describe(
     });
   },
 );
+
+describe(
+  'Feature: course-density-visualization, Property 20: Finisher ranks are stable competition ranks',
+  () => {
+    it('keeps competition ranks unchanged when snapshot order and time change', () => {
+      fc.assert(
+        fc.property(simulationSnapshotArbitrary, (snapshot) => {
+          const enabled = buildMarkerDescriptors(snapshot, true);
+          const reorderedSnapshot: SimulationSnapshot = {
+            simulationTimeSeconds: snapshot.simulationTimeSeconds + 1,
+            positions: [...snapshot.positions].reverse(),
+          };
+          const reordered = buildMarkerDescriptors(reorderedSnapshot, true);
+          const expectedRanks = new Map(
+            snapshot.positions.map((position) => [
+              position.id,
+              1 + snapshot.positions.filter(
+                (candidate) => candidate.finishDurationSeconds < position.finishDurationSeconds,
+              ).length,
+            ]),
+          );
+
+          expect(new Map(enabled.map((marker) => [marker.id, marker.finisherRank])))
+            .toEqual(expectedRanks);
+          expect(new Map(reordered.map((marker) => [marker.id, marker.finisherRank])))
+            .toEqual(expectedRanks);
+          expect(enabled.every((marker) => marker.icon.kind === 'finisher-number'))
+            .toBe(true);
+          expect(reordered.every((marker) => marker.icon.kind === 'finisher-number'))
+            .toBe(true);
+
+          const durationsWithUniqueRanks = new Set(
+            snapshot.positions.map((position) => position.finishDurationSeconds),
+          );
+          if (durationsWithUniqueRanks.size === snapshot.positions.length) {
+            expect(new Set(enabled.map((marker) => marker.finisherRank)).size)
+              .toBe(enabled.length);
+          }
+        }),
+        { numRuns: 200 },
+      );
+    });
+  },
+);
+
+describe(
+  'Feature: course-density-visualization, Property 21: Finisher-number presentation is isolated from simulation and marker state',
+  () => {
+    it('changes only icon presentation while preserving marker, density, and rank state', () => {
+      fc.assert(
+        fc.property(simulationSnapshotArbitrary, (snapshot) => {
+          const options = { gridSizeMeters: 25, center: { lat: REFERENCE_LATITUDE, lon: REFERENCE_LONGITUDE } };
+          const disabled = buildVisualizationRenderModel(snapshot, options);
+          const enabled = buildVisualizationRenderModel(snapshot, {
+            ...options,
+            showFinisherNumbers: true,
+          });
+
+          expect(enabled.simulationTimeSeconds).toBe(disabled.simulationTimeSeconds);
+          expect(enabled.density).toEqual(disabled.density);
+          expect(enabled.markers.map((marker) => marker.id))
+            .toEqual(disabled.markers.map((marker) => marker.id));
+          expect(enabled.markers.map((marker) => marker.finisherRank))
+            .toEqual(disabled.markers.map((marker) => marker.finisherRank));
+
+          enabled.markers.forEach((marker, index) => {
+            const defaultMarker = disabled.markers[index];
+            expect(defaultMarker).toBeDefined();
+            expect(marker.icon).toEqual({ kind: 'finisher-number', rank: marker.finisherRank });
+            expect(defaultMarker?.icon).toEqual({ kind: 'default', rank: null });
+            expect({
+              id: marker.id,
+              displayName: marker.displayName,
+              finishDurationSeconds: marker.finishDurationSeconds,
+              routeFraction: marker.routeFraction,
+              coordinate: marker.coordinate,
+              simulationTimeSeconds: marker.simulationTimeSeconds,
+              style: marker.style,
+            }).toEqual({
+              id: defaultMarker?.id,
+              displayName: defaultMarker?.displayName,
+              finishDurationSeconds: defaultMarker?.finishDurationSeconds,
+              routeFraction: defaultMarker?.routeFraction,
+              coordinate: defaultMarker?.coordinate,
+              simulationTimeSeconds: defaultMarker?.simulationTimeSeconds,
+              style: defaultMarker?.style,
+            });
+          });
+
+          const laterSnapshot: SimulationSnapshot = {
+            simulationTimeSeconds: snapshot.simulationTimeSeconds + 1,
+            positions: snapshot.positions.map((position) => ({
+              ...position,
+              routeFraction: Math.min(1, position.routeFraction + 0.1),
+            })),
+          };
+          const laterEnabled = buildMarkerDescriptors(laterSnapshot, true);
+          expect(new Map(laterEnabled.map((marker) => [marker.id, marker.finisherRank])))
+            .toEqual(new Map(enabled.markers.map((marker) => [marker.id, marker.finisherRank])));
+        }),
+        { numRuns: 200 },
+      );
+    });
+  },
+);

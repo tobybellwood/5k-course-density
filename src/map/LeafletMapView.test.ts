@@ -52,6 +52,11 @@ const leafletState = vi.hoisted(() => {
       this.popup = content;
       return this;
     }
+
+    public setIcon(icon: unknown): this {
+      this.options.icon = icon;
+      return this;
+    }
   }
 
   class MockCircle {
@@ -77,6 +82,10 @@ const leafletState = vi.hoisted(() => {
     public constructor(public readonly options: Record<string, unknown>) {}
   }
 
+  class MockDivIcon {
+    public constructor(public readonly options: Record<string, unknown>) {}
+  }
+
   const maps: MockMap[] = [];
   const layerGroups: MockLayerGroup[] = [];
   const polylines: unknown[] = [];
@@ -85,6 +94,7 @@ const leafletState = vi.hoisted(() => {
   return {
     MockCircle,
     MockDefaultIcon,
+    MockDivIcon,
     MockLayerGroup,
     MockMap,
     MockMarker,
@@ -101,6 +111,9 @@ vi.mock('leaflet', () => ({
     const circle = new leafletState.MockCircle(coordinate, options);
     return circle;
   }),
+  divIcon: vi.fn((options: Record<string, unknown>) => (
+    new leafletState.MockDivIcon(options)
+  )),
   Icon: {
     Default: leafletState.MockDefaultIcon,
   },
@@ -268,6 +281,208 @@ describe('LeafletMapView', () => {
     expect(mockLayerGroupForView(view.densityLayerGroup).layers).not.toHaveLength(0);
   });
 
+  it('renders safe numeric rank icons with ties and longest-finisher precedence', () => {
+    const view = new LeafletMapView('map', { map: new leafletState.MockMap() as never });
+    const unsafeName = '<img src=x onerror=alert(1)>';
+
+    view.renderSnapshot({
+      simulationTimeSeconds: 450,
+      positions: [
+        {
+          ...createPosition('runner-1', unsafeName, { lat: 51.5, lon: -0.1 }, 600),
+          routeFraction: 1,
+        },
+        createPosition('runner-2', 'Tie A', { lat: 51.501, lon: -0.099 }, 700),
+        createPosition('runner-3', 'Tie B', { lat: 51.502, lon: -0.098 }, 700),
+        {
+          ...createPosition('runner-4', 'Longest', { lat: 51.502, lon: -0.098 }, 900),
+          routeFraction: 1,
+        },
+      ],
+    }, true);
+
+    const markers = mockLayerGroupForView(view.markerLayerGroup).layers as Array<
+      InstanceType<typeof leafletState.MockMarker>
+    >;
+    const icons = markers.map((marker) => marker.options.icon as InstanceType<typeof leafletState.MockDivIcon>);
+    expect(icons.every((icon) => icon instanceof leafletState.MockDivIcon)).toBe(true);
+    expect(icons.map((icon) => icon.options.className)).toEqual([
+      'course-density-marker--number',
+      'course-density-marker--number',
+      'course-density-marker--number',
+      'course-density-marker--number course-density-marker--bright-yellow',
+    ]);
+    expect(icons.map((icon) => (icon.options.html as HTMLElement).textContent)).toEqual(['1', '2', '2', '4']);
+    expect(markers.map((marker) => marker.options.opacity)).toEqual([0.35, 1, 1, 1]);
+    expect(markers[0].popup?.querySelector('img')).toBeNull();
+    expect(markers[0].popup?.textContent).toContain(unsafeName);
+  });
+
+  it('changes only marker icons when toggling finisher-number presentation', () => {
+    const view = new LeafletMapView('map', {
+      map: new leafletState.MockMap() as never,
+      layerVisibility: { markers: false, density: true },
+    });
+    const snapshot = createSnapshot();
+    view.renderSnapshot(snapshot);
+    const markers = mockLayerGroupForView(view.markerLayerGroup).layers as Array<
+      InstanceType<typeof leafletState.MockMarker>
+    >;
+    const popups = markers.map((marker) => marker.popup);
+    const density = [...mockLayerGroupForView(view.densityLayerGroup).layers];
+    const coordinates = markers.map((marker) => marker.coordinate);
+    const opacity = markers.map((marker) => marker.options.opacity);
+
+    view.renderMarkerPresentation(snapshot, true);
+
+    expect(mockLayerGroupForView(view.markerLayerGroup).layers).toEqual(markers);
+    expect(mockLayerGroupForView(view.densityLayerGroup).layers).toEqual(density);
+    expect(markers.map((marker) => marker.coordinate)).toEqual(coordinates);
+    expect(markers.map((marker) => marker.options.opacity)).toEqual(opacity);
+    expect(markers.map((marker) => marker.popup)).toEqual(popups);
+    expect(markers.map((marker) => marker.options.icon).every(
+      (icon) => icon instanceof leafletState.MockDivIcon,
+    )).toBe(true);
+    expect(mockMapForView(view).layers.has(view.markerLayerGroup)).toBe(false);
+    expect(mockMapForView(view).layers.has(view.densityLayerGroup)).toBe(true);
+
+    view.renderMarkerPresentation(snapshot, false);
+
+    expect(markers.map((marker) => marker.options.icon).every(
+      (icon) => icon instanceof leafletState.MockDefaultIcon,
+    )).toBe(true);
+    expect(markers[1].options.icon).toEqual(expect.objectContaining({
+      options: { className: 'course-density-marker--bright-yellow' },
+    }));
+    expect(mockLayerGroupForView(view.densityLayerGroup).layers).toEqual(density);
+    expect(markers.map((marker) => marker.popup)).toEqual(popups);
+    expect(view.isLayerVisible('markers')).toBe(false);
+    expect(view.isLayerVisible('density')).toBe(true);
+  });
+
+  it('preserves every non-icon field across mocked-map presentation toggles', () => {
+    const unsafeName = '<img src=x onerror=alert(1)>';
+    const snapshot: SimulationSnapshot = {
+      simulationTimeSeconds: 750,
+      positions: [
+        {
+          ...createPosition('runner-1', unsafeName, { lat: 51.5, lon: -0.1 }, 600),
+          routeFraction: 1,
+        },
+        {
+          ...createPosition('runner-2', 'Longest <b>Finisher</b>', { lat: 51.501, lon: -0.099 }, 900),
+          routeFraction: 0.3,
+        },
+        createPosition('runner-3', 'Middle Runner', { lat: 51.502, lon: -0.098 }, 700),
+      ],
+    };
+    const snapshotJson = JSON.stringify(snapshot);
+    const snapshotPositions = snapshot.positions;
+    const view = new LeafletMapView('map', {
+      map: new leafletState.MockMap() as never,
+      layerVisibility: { markers: false, density: true },
+    });
+
+    view.renderSnapshot(snapshot);
+
+    const markerLayers = mockLayerGroupForView(view.markerLayerGroup).layers;
+    const densityLayers = mockLayerGroupForView(view.densityLayerGroup).layers;
+    const markers = markerLayers as Array<InstanceType<typeof leafletState.MockMarker>>;
+    const markerCoordinates = markers.map((marker) => marker.coordinate);
+    const markerOpacities = markers.map((marker) => marker.options.opacity);
+    const markerPopups = markers.map((marker) => marker.popup);
+    const markerPopupText = markers.map((marker) => marker.popup?.textContent);
+    const markerLayerMapState = {
+      markers: mockMapForView(view).layers.has(view.markerLayerGroup),
+      density: mockMapForView(view).layers.has(view.densityLayerGroup),
+    };
+
+    expect(markers.map((marker) => marker.options.icon)).toEqual([
+      undefined,
+      expect.objectContaining({ options: { className: 'course-density-marker--bright-yellow' } }),
+      undefined,
+    ]);
+    expect(markers[0].popup?.querySelector('img')).toBeNull();
+    expect(markers[0].popup?.textContent).toContain(unsafeName);
+    expect(markers[1].popup?.querySelector('b')).toBeNull();
+
+    view.renderMarkerPresentation(snapshot, true);
+
+    expect(JSON.stringify(snapshot)).toBe(snapshotJson);
+    expect(snapshot.simulationTimeSeconds).toBe(750);
+    expect(snapshot.positions).toBe(snapshotPositions);
+    expect(mockLayerGroupForView(view.markerLayerGroup).layers).toBe(markerLayers);
+    expect(mockLayerGroupForView(view.densityLayerGroup).layers).toBe(densityLayers);
+    expect(markers.map((marker) => marker.coordinate)).toEqual(markerCoordinates);
+    expect(markers.map((marker) => marker.options.opacity)).toEqual([0.35, 1, 1]);
+    expect(markers.map((marker) => marker.options.opacity)).toEqual(markerOpacities);
+    expect(markers.map((marker) => marker.popup)).toEqual(markerPopups);
+    expect(markers.map((marker) => marker.popup?.textContent)).toEqual(markerPopupText);
+    expect(markers.map((marker) => marker.options.icon)).toEqual([
+      expect.objectContaining({
+        options: expect.objectContaining({
+          className: 'course-density-marker--number',
+          html: expect.objectContaining({ textContent: '1' }),
+        }),
+      }),
+      expect.objectContaining({
+        options: expect.objectContaining({
+          className: 'course-density-marker--number course-density-marker--bright-yellow',
+          html: expect.objectContaining({ textContent: '3' }),
+        }),
+      }),
+      expect.objectContaining({
+        options: expect.objectContaining({
+          className: 'course-density-marker--number',
+          html: expect.objectContaining({ textContent: '2' }),
+        }),
+      }),
+    ]);
+    expect(markers[0].popup?.querySelector('img')).toBeNull();
+    expect(markers[1].popup?.querySelector('b')).toBeNull();
+    expect(view.isLayerVisible('markers')).toBe(false);
+    expect(view.isLayerVisible('density')).toBe(true);
+    expect({
+      markers: mockMapForView(view).layers.has(view.markerLayerGroup),
+      density: mockMapForView(view).layers.has(view.densityLayerGroup),
+    }).toEqual(markerLayerMapState);
+
+    view.renderMarkerPresentation(snapshot, false);
+
+    expect(JSON.stringify(snapshot)).toBe(snapshotJson);
+    expect(mockLayerGroupForView(view.markerLayerGroup).layers).toBe(markerLayers);
+    expect(mockLayerGroupForView(view.densityLayerGroup).layers).toBe(densityLayers);
+    expect(markers.map((marker) => marker.coordinate)).toEqual(markerCoordinates);
+    expect(markers.map((marker) => marker.options.opacity)).toEqual(markerOpacities);
+    expect(markers.map((marker) => marker.popup)).toEqual(markerPopups);
+    expect(markers.map((marker) => marker.popup?.textContent)).toEqual(markerPopupText);
+    expect(markers[0].options.icon).toBeInstanceOf(leafletState.MockDefaultIcon);
+    expect(markers[1].options.icon).toEqual(expect.objectContaining({
+      options: { className: 'course-density-marker--bright-yellow' },
+    }));
+    expect(markers[2].options.icon).toBeInstanceOf(leafletState.MockDefaultIcon);
+    expect(markers.every((marker) => marker.popup?.querySelector('img') === null)).toBe(true);
+    expect(markers.every((marker) => marker.popup?.querySelector('b') === null)).toBe(true);
+    expect(view.isLayerVisible('markers')).toBe(false);
+    expect(view.isLayerVisible('density')).toBe(true);
+    expect({
+      markers: mockMapForView(view).layers.has(view.markerLayerGroup),
+      density: mockMapForView(view).layers.has(view.densityLayerGroup),
+    }).toEqual(markerLayerMapState);
+  });
+
+  it('uses default icons when finisher numbers are disabled', () => {
+    const view = new LeafletMapView('map', { map: new leafletState.MockMap() as never });
+
+    view.renderSnapshot(createSnapshot(), false);
+
+    const markers = mockLayerGroupForView(view.markerLayerGroup).layers as Array<
+      InstanceType<typeof leafletState.MockMarker>
+    >;
+    expect(markers[0].options.icon).toBeUndefined();
+    expect(markers[1].options.icon).toBeInstanceOf(leafletState.MockDefaultIcon);
+  });
+
   it('uses the standard highlighted icon for tied longest finishers', () => {
     const view = new LeafletMapView('map', { map: new leafletState.MockMap() as never });
 
@@ -367,10 +582,49 @@ describe('LeafletMapView', () => {
     expect(mockMapForView(view).layers.has(view.densityLayerGroup)).toBe(true);
   });
 
+  it('renders numeric finisher icons through marker-only presentation updates', () => {
+    const view = new LeafletMapView('map', { map: new leafletState.MockMap() as never });
+    const snapshot = createSnapshot();
+    view.renderSnapshot(snapshot);
+    const initialDensity = [...mockLayerGroupForView(view.densityLayerGroup).layers];
+    const initialCoordinates = (mockLayerGroupForView(view.markerLayerGroup).layers as Array<InstanceType<typeof leafletState.MockMarker>>)
+      .map((marker) => marker.coordinate);
+
+    view.renderMarkerPresentation(snapshot, true);
+
+    const markers = mockLayerGroupForView(view.markerLayerGroup).layers as Array<InstanceType<typeof leafletState.MockMarker>>;
+    expect(markers.map((marker) => marker.coordinate)).toEqual(initialCoordinates);
+    expect(mockLayerGroupForView(view.densityLayerGroup).layers).toEqual(initialDensity);
+    expect(markers[0].options.icon).toBeInstanceOf(leafletState.MockDivIcon);
+    expect(markers[0].options.icon).toEqual(expect.objectContaining({
+      options: expect.objectContaining({
+        className: 'course-density-marker--number',
+        html: expect.objectContaining({ textContent: '1' }),
+      }),
+    }));
+    expect(markers[1].options.icon).toEqual(expect.objectContaining({
+      options: expect.objectContaining({
+        className: 'course-density-marker--number course-density-marker--bright-yellow',
+        html: expect.objectContaining({ textContent: '2' }),
+      }),
+    }));
+    expect(markers[0].options.opacity).toBe(1);
+    expect(markers[1].options.opacity).toBe(1);
+    expect(markers[0].popup?.textContent).toContain('Ada Example');
+    expect(markers[1].popup?.textContent).toContain('Ben Example');
+
+    view.renderMarkerPresentation(snapshot, false);
+    const defaultMarkers = mockLayerGroupForView(view.markerLayerGroup).layers as Array<InstanceType<typeof leafletState.MockMarker>>;
+    expect(defaultMarkers[0].options.icon).toBeInstanceOf(leafletState.MockDefaultIcon);
+    expect(defaultMarkers[1].options.icon).toBeInstanceOf(leafletState.MockDefaultIcon);
+  });
+
   it('renders popup content with participant, finish, and simulation times', () => {
     const marker: MarkerDescriptor = {
       ...createPosition('runner-1', 'Ada Example', { lat: 51.5, lon: -0.1 }, 3_725),
       simulationTimeSeconds: 75,
+      finisherRank: 1,
+      icon: { kind: 'default', rank: null },
       style: { opacity: 1, colour: 'default' },
     };
 
@@ -385,6 +639,8 @@ describe('LeafletMapView', () => {
     const marker: MarkerDescriptor = {
       ...createPosition('runner-unsafe', '<img src=x onerror=alert(1)>', { lat: 51.5, lon: -0.1 }, 125),
       simulationTimeSeconds: 10,
+      finisherRank: 1,
+      icon: { kind: 'default', rank: null },
       style: { opacity: 1, colour: 'default' },
     };
 

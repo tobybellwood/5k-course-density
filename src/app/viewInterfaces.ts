@@ -36,8 +36,9 @@ export type PlaybackStatusViewModel = Readonly<{
 export interface MapView {
   renderCourse?(course: CourseTrack): void;
   setCourse?(course: CourseTrack): void;
-  renderSnapshot?(snapshot: SimulationSnapshot): void;
-  renderSnapshotOrClear?(snapshot: SimulationSnapshot | null): void;
+  renderSnapshot?(snapshot: SimulationSnapshot, showFinisherNumbers?: boolean): void;
+  renderSnapshotOrClear?(snapshot: SimulationSnapshot | null, showFinisherNumbers?: boolean): void;
+  renderMarkerPresentation?(snapshot: SimulationSnapshot, showFinisherNumbers: boolean): void;
   setDensitySettings?(settings: DensitySettings): void;
   renderDensity?(snapshot: SimulationSnapshot, settings: DensitySettings): void;
   syncLayerVisibility?(visibility: ApplicationState['layers']): void;

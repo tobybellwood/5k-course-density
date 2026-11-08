@@ -263,11 +263,38 @@ input:focus-visible,
   cursor: pointer;
 }
 
-.layer-controls input[type="checkbox"] {
+.layer-controls input[type="checkbox"],
+.finisher-numbers-input-row input[type="checkbox"] {
   width: 1.25rem;
   height: 1.25rem;
   flex: 0 0 auto;
   accent-color: var(--color-accent);
+}
+
+.finisher-numbers-control {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+  margin-top: 1rem;
+}
+
+.finisher-numbers-control label {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.finisher-numbers-input-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+#finisher-numbers-status {
+  min-width: 2.5rem;
+  color: var(--color-muted);
+  font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .density-settings {
@@ -428,6 +455,29 @@ input:focus-visible,
 .course-density-marker--bright-yellow {
   /* Recolour the standard Leaflet pin without changing its silhouette or dimensions. */
   filter: brightness(0) saturate(100%) invert(89%) sepia(100%) saturate(7495%) hue-rotate(359deg) brightness(106%) contrast(105%);
+}
+
+.course-density-marker--number {
+  display: flex !important;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #1e3a8a;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #172033;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 35%);
+}
+
+.course-density-marker--number.course-density-marker--bright-yellow {
+  border-color: #a16207;
+  background: #fde047;
+  color: #422006;
+  filter: none;
 }
 
 @media (max-width: 800px) {

@@ -18,6 +18,9 @@ function installMarkup(): void {
     <button id="reset-playback-button"></button>
     <input id="markers-layer-toggle" type="checkbox">
     <input id="density-layer-toggle" type="checkbox">
+    <label for="show-finisher-numbers">Show finisher numbers</label>
+    <input id="show-finisher-numbers" type="checkbox" role="switch">
+    <span id="finisher-numbers-status">Off</span>
     <select id="density-grid-size"><option value="10">10 m</option><option value="25">25 m</option><option value="50">50 m</option><option value="100">100 m</option></select>
     <input id="density-minimum" type="number" value="1">
     <select id="density-warning-threshold"><option value="disabled">Disabled</option><option value="5">5 people</option></select>
@@ -96,6 +99,8 @@ describe('DomView', () => {
     expect(document.querySelector('#validation-notice')?.getAttribute('aria-live')).toBe('polite');
     expect((document.querySelector('#markers-layer-toggle') as HTMLInputElement).checked).toBe(true);
     expect((document.querySelector('#density-layer-toggle') as HTMLInputElement).checked).toBe(false);
+    expect((document.querySelector('#show-finisher-numbers') as HTMLInputElement).checked).toBe(false);
+    expect(document.querySelector('#finisher-numbers-status')?.textContent).toBe('Off');
     expect((document.querySelector('#start-playback-button') as HTMLButtonElement).disabled).toBe(false);
     expect((document.querySelector('#pause-playback-button') as HTMLButtonElement).disabled).toBe(true);
     expect((document.querySelector('#reset-playback-button') as HTMLButtonElement).disabled).toBe(false);
@@ -112,6 +117,7 @@ describe('DomView', () => {
       onResetExample: vi.fn(),
       onMarkersVisibilityChange: vi.fn(),
       onDensityVisibilityChange: vi.fn(),
+      onShowFinisherNumbersChange: vi.fn(),
       onDensitySettingsChanged: vi.fn(),
     };
     createDomView(document, callbacks);
@@ -132,6 +138,9 @@ describe('DomView', () => {
     density.checked = false;
     markers.dispatchEvent(new Event('change'));
     density.dispatchEvent(new Event('change'));
+    const finisherNumbers = document.querySelector('#show-finisher-numbers') as HTMLInputElement;
+    finisherNumbers.checked = true;
+    finisherNumbers.dispatchEvent(new Event('change'));
     const gridSize = document.querySelector('#density-grid-size') as HTMLSelectElement;
     gridSize.value = '50';
     gridSize.dispatchEvent(new Event('change'));
@@ -150,6 +159,7 @@ describe('DomView', () => {
     expect(callbacks.onResetExample).toHaveBeenCalledOnce();
     expect(callbacks.onMarkersVisibilityChange).toHaveBeenCalledWith(false);
     expect(callbacks.onDensityVisibilityChange).toHaveBeenCalledWith(false);
+    expect(callbacks.onShowFinisherNumbersChange).toHaveBeenCalledWith(true);
     expect(callbacks.onDensitySettingsChanged).toHaveBeenLastCalledWith({
       gridSizeMeters: 50,
       minimumPeoplePerCircle: 2,
