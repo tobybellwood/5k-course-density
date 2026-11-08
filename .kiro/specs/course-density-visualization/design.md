@@ -10,7 +10,7 @@ The design keeps all domain calculations independent of the map and DOM. This ma
 
 ### Goals
 
-- Load the supplied `onthegomap-5-km-route.gpx` and `results _ Riverbank parkrun.html` as the default example.
+- Load the supplied `Cricket_Captains_Walk_parkrun.gpx` and `results _ Riverbank parkrun.html` as the default example.
 - Allow local GPX and HTML result-file replacement without a backend.
 - Preserve the previous valid input when a replacement fails.
 - Simulate all valid participants with a constant-pace model.
@@ -59,7 +59,7 @@ src/
   styles.css
 public/
   examples/
-    onthegomap-5-km-route.gpx
+    Cricket_Captains_Walk_parkrun.gpx
     results _ Riverbank parkrun.html
 ```
 

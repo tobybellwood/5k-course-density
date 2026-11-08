@@ -46,7 +46,7 @@ The Course Density Visualization Tool is a static browser application for explor
 
 #### Acceptance Criteria
 
-1. WHEN the Static Visualization Tool first opens, THE Static Visualization Tool SHALL load the supplied `onthegomap-5-km-route.gpx` file and `results _ Riverbank parkrun.html` file as the built-in example.
+1. WHEN the Static Visualization Tool first opens, THE Static Visualization Tool SHALL load the supplied `Cricket_Captains_Walk_parkrun.gpx` file and `results _ Riverbank parkrun.html` file as the built-in example.
 2. WHEN a user selects a local GPX file, THE Static Visualization Tool SHALL send the selected file to the GPX Parser and replace the current Course Track after successful parsing.
 3. WHEN a user selects a local HTML file, THE Static Visualization Tool SHALL send the selected file to the Results Parser and replace the current Participant Records after successful parsing.
 4. WHEN the GPX Parser receives a GPX document, THE GPX Parser SHALL extract numeric latitude and longitude values from each `<trkpt>` element within each `<trkseg>` element in document order.

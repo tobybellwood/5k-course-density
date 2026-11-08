@@ -101,7 +101,7 @@ describe('InputCoordinator', () => {
 
   it('exposes the documented default example paths', () => {
     expect(getExamplePaths()).toEqual({
-      course: './examples/onthegomap-5-km-route.gpx',
+      course: './examples/Cricket_Captains_Walk_parkrun.gpx',
       results: './examples/results%20_%20Riverbank%20parkrun.html',
     });
   });

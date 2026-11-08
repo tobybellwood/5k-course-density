@@ -8,7 +8,7 @@ const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const distDirectory = resolve(projectRoot, 'dist');
 
 const bundledExamples = [
-  'examples/onthegomap-5-km-route.gpx',
+  'examples/Cricket_Captains_Walk_parkrun.gpx',
   'examples/results _ Riverbank parkrun.html',
 ] as const;
 
@@ -35,7 +35,7 @@ describe('static production build', () => {
 
     expect(statSync(entrypointPath).size).toBeGreaterThan(0);
     expect(scriptReferences.length).toBeGreaterThan(0);
-    expect(entrypoint).toContain('./examples/onthegomap-5-km-route.gpx');
+    expect(entrypoint).toContain('./examples/Cricket_Captains_Walk_parkrun.gpx');
     expect(entrypoint).toContain('./examples/results%20_%20Riverbank%20parkrun.html');
 
     for (const scriptReference of scriptReferences) {

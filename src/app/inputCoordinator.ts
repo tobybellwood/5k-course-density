@@ -43,7 +43,7 @@ export type BootstrapResult = {
 };
 
 export const DEFAULT_EXAMPLE_PATHS: ExamplePaths = Object.freeze({
-  course: './examples/onthegomap-5-km-route.gpx',
+  course: './examples/Cricket_Captains_Walk_parkrun.gpx',
   results: './examples/results%20_%20Riverbank%20parkrun.html',
 });
 
