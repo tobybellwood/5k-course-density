@@ -77,7 +77,9 @@ The generated site is written to `dist/`.
 
 The project is a client-side static app and does not require a server or database. Deploy the contents of `dist/` to GitHub Pages. The Vite configuration uses relative asset paths, so it works from a repository project URL as well as a custom domain.
 
-A GitHub Actions deployment can run `npm ci`, `npm run build`, upload `dist/` as a Pages artifact, and deploy it with the official Pages actions.
+This repository includes `.github/workflows/deploy-pages.yml`. It runs the checks, builds `dist/`, uploads the Pages artifact, and deploys it when changes are pushed to `main`.
+
+To enable deployment, open the repository's **Settings → Pages** page and set **Source** to **GitHub Actions**. You can also start the workflow manually from the Actions tab.
 
 ## Input files
 

@@ -6,6 +6,9 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
     exclude: ['tests/browser/**'],
     passWithNoTests: true,
+    pool: 'forks',
+    maxWorkers: 1,
+    minWorkers: 1,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
