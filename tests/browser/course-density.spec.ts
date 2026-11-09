@@ -47,7 +47,7 @@ async function loadBundledExample(page: Page): Promise<void> {
 }
 
 test.describe('built static course density application', () => {
-  test('loads the bundled example and renders the route, markers, density, and usable status controls', async ({ page }) => {
+  test('loads the bundled example and renders the route, markers, and usable status controls', async ({ page }) => {
     await loadBundledExample(page);
 
     await expect(page.locator('#map')).toBeVisible();
@@ -57,17 +57,15 @@ test.describe('built static course density application', () => {
     await expect(scaleControl).toContainText(/(?:m|km)/);
     await expect(scaleControl).not.toContainText(/(?:ft|mi)/i);
     await expect(page.locator('#map .leaflet-bottom.leaflet-left .leaflet-control-scale')).toHaveCount(1);
-    await expect(page.locator('#map .leaflet-overlay-pane path')).not.toHaveCount(0);
+    await expect(page.locator('#map .leaflet-overlay-pane path')).toHaveCount(1);
     await expect(page.locator('#map .leaflet-marker-icon').first()).toBeVisible();
-    await expect(page.locator('#map .leaflet-marker-icon').first()).toHaveAttribute(
-      'src',
-      /\/assets\/marker-icon-[^/]+\.png$/,
+    await expect(page.locator('#map .leaflet-marker-icon').first()).toHaveClass(
+      /course-density-marker--number/,
     );
-    await expect.poll(() => page.locator('#map .leaflet-marker-icon').first().evaluate(
-      (element) => (element as HTMLImageElement).naturalWidth,
-    )).toBeGreaterThan(0);
     await expect(page.locator('#markers-layer-toggle')).toBeChecked();
-    await expect(page.locator('#density-layer-toggle')).toBeChecked();
+    await expect(page.locator('#density-layer-toggle')).not.toBeChecked();
+    await expect(page.getByRole('switch', { name: 'Show finisher numbers' })).toBeChecked();
+    await expect(page.locator('#finisher-numbers-status')).toHaveText('On');
     await expect(page.locator('#start-playback-button')).toBeEnabled();
     await expect(page.locator('#pause-playback-button')).toBeDisabled();
     await expect(page.locator('#reset-playback-button')).toBeEnabled();
@@ -109,21 +107,24 @@ test.describe('built static course density application', () => {
     await page.getByLabel('Minimum people per circle').fill('2');
     await page.getByLabel('Warning colour threshold').selectOption('5');
     await page.locator('#markers-layer-toggle').uncheck();
-    await page.locator('#density-layer-toggle').uncheck();
-    await page.getByRole('switch', { name: 'Show finisher numbers' }).check();
+    await page.locator('#density-layer-toggle').check();
+    await page.getByRole('switch', { name: 'Show finisher numbers' }).uncheck();
     await page.locator('#reset-example-button').click();
     await expect(page.locator('#participant-count')).toHaveText('378');
     await expect(page.locator('#density-settings-summary')).toHaveText('50 m grid · minimum 2');
     await expect(page.locator('#density-warning-state')).toHaveText('5 people');
     await expect(page.locator('#markers-layer-toggle')).not.toBeChecked();
-    await expect(page.locator('#density-layer-toggle')).not.toBeChecked();
-    await expect(page.getByRole('switch', { name: 'Show finisher numbers' })).toBeChecked();
+    await expect(page.locator('#density-layer-toggle')).toBeChecked();
+    await expect(page.getByRole('switch', { name: 'Show finisher numbers' })).not.toBeChecked();
 
     await page.getByLabel('Bundled results example').selectOption('./examples/results%20_%2062%20people.html');
     await page.locator('#reset-example-button').click();
     await expect(page.locator('#participant-count')).toHaveText(bundledParticipantCount ?? '');
     await expect(page.locator('#total-duration')).not.toHaveText('1:23');
     await expect(page.locator('#simulation-time')).toHaveText('0:00');
+    await expect(page.locator('#markers-layer-toggle')).not.toBeChecked();
+    await expect(page.locator('#density-layer-toggle')).toBeChecked();
+    await expect(page.getByRole('switch', { name: 'Show finisher numbers' })).not.toBeChecked();
     await expect(page.locator('#start-playback-button')).toBeEnabled();
   });
 
@@ -157,6 +158,7 @@ test.describe('built static course density application', () => {
 
   test('updates both visual layers from playback and preserves state when toggled', async ({ page }) => {
     await loadBundledExample(page);
+    await page.locator('#density-layer-toggle').check();
     const initialMarkerCount = await page.locator('#map .leaflet-marker-icon').count();
     const initialOverlayPathCount = await page.locator('#map .leaflet-overlay-pane path').count();
     expect(initialMarkerCount).toBeGreaterThan(0);
@@ -212,6 +214,7 @@ test.describe('built static course density application', () => {
 
   test('rerenders marker emphasis during playback while preserving positions, density, state, and safe popups', async ({ page }) => {
     await loadBundledExample(page);
+    await page.locator('#density-layer-toggle').check();
 
     await page.locator('#course-file-input').setInputFiles({
       name: 'marker-style-course.gpx',
@@ -225,6 +228,7 @@ test.describe('built static course density application', () => {
     });
     await expect(page.locator('#participant-count')).toHaveText('2');
     await expect(page.locator('#total-duration')).toHaveText('1:00');
+    await page.getByRole('switch', { name: 'Show finisher numbers' }).uncheck();
 
     const markers = page.locator('#map .leaflet-marker-icon');
     const earlyMarker = markers.nth(0);
@@ -306,19 +310,17 @@ test.describe('built static course density application', () => {
     const finisherSwitch = page.getByRole('switch', { name: 'Show finisher numbers' });
     await expect(finisherSwitch).toHaveCount(1);
     await expect(finisherSwitch).toBeVisible();
-    await expect(finisherSwitch).not.toBeChecked();
+    await expect(finisherSwitch).toBeChecked();
     await expect(finisherSwitch).toHaveAttribute('aria-describedby', 'finisher-numbers-status');
     await expect(page.getByText('Show finisher numbers', { exact: true })).toBeVisible();
-    await expect(page.locator('#finisher-numbers-status')).toHaveText('Off');
+    await expect(page.locator('#finisher-numbers-status')).toHaveText('On');
 
     await finisherSwitch.focus();
     await expect(finisherSwitch).toBeFocused();
     await page.keyboard.press('Space');
-    await expect(finisherSwitch).toBeChecked();
-    await expect(page.locator('#finisher-numbers-status')).toHaveText('On');
-    await expect(page.locator('#map .course-density-marker--number')).toHaveCount(
-      await page.locator('#map .leaflet-marker-icon').count(),
-    );
+    await expect(finisherSwitch).not.toBeChecked();
+    await expect(page.locator('#finisher-numbers-status')).toHaveText('Off');
+    await expect(page.locator('#map .course-density-marker--number')).toHaveCount(0);
 
     const layout = await page.evaluate(() => ({
       documentWidth: document.documentElement.scrollWidth,
@@ -331,13 +333,16 @@ test.describe('built static course density application', () => {
     expect(layout.mapWidth).toBeGreaterThan(0);
 
     await page.keyboard.press('Space');
-    await expect(finisherSwitch).not.toBeChecked();
-    await expect(page.locator('#finisher-numbers-status')).toHaveText('Off');
-    await expect(page.locator('#map .course-density-marker--number')).toHaveCount(0);
+    await expect(finisherSwitch).toBeChecked();
+    await expect(page.locator('#finisher-numbers-status')).toHaveText('On');
+    await expect(page.locator('#map .course-density-marker--number')).toHaveCount(
+      await page.locator('#map .leaflet-marker-icon').count(),
+    );
   });
 
   test('preserves paused and running playback state while finisher icons rerender', async ({ page }) => {
     await loadBundledExample(page);
+    await page.locator('#density-layer-toggle').check();
     await page.locator('#course-file-input').setInputFiles({
       name: 'finisher-number-course.gpx',
       mimeType: 'application/gpx+xml',

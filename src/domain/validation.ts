@@ -579,7 +579,7 @@ export function createApplicationState(
   const candidateWithDefaults = {
     ...candidate,
     showFinisherNumbers: candidate.showFinisherNumbers === undefined
-      ? false
+      ? true
       : candidate.showFinisherNumbers,
     densitySettings: candidate.densitySettings === undefined
       ? { gridSizeMeters: 25 as const, minimumPeoplePerCircle: 1, warningColourThreshold: null }

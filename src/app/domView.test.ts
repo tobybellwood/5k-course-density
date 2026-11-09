@@ -18,11 +18,11 @@ function installMarkup(): void {
     <button id="start-playback-button"></button>
     <button id="pause-playback-button"></button>
     <button id="reset-playback-button"></button>
-    <input id="markers-layer-toggle" type="checkbox">
+    <input id="markers-layer-toggle" type="checkbox" checked>
     <input id="density-layer-toggle" type="checkbox">
     <label for="show-finisher-numbers">Show finisher numbers</label>
-    <input id="show-finisher-numbers" type="checkbox" role="switch">
-    <span id="finisher-numbers-status">Off</span>
+    <input id="show-finisher-numbers" type="checkbox" role="switch" checked>
+    <span id="finisher-numbers-status">On</span>
     <select id="density-grid-size"><option value="10">10 m</option><option value="25">25 m</option><option value="50">50 m</option><option value="100">100 m</option></select>
     <input id="density-minimum" type="number" value="1">
     <select id="density-warning-threshold"><option value="disabled">Disabled</option><option value="5">5 people</option></select>
@@ -62,6 +62,7 @@ function availableState(): ApplicationState {
     simulationTimeSeconds: 61,
     playback: 'paused',
     layers: { markers: true, density: false },
+    showFinisherNumbers: true,
     validation: createValidationSummary({
       excludedRows: 2,
       reasonCounts: { 'invalid-duration': 1, 'missing-name': 1 },
@@ -101,8 +102,8 @@ describe('DomView', () => {
     expect(document.querySelector('#validation-notice')?.getAttribute('aria-live')).toBe('polite');
     expect((document.querySelector('#markers-layer-toggle') as HTMLInputElement).checked).toBe(true);
     expect((document.querySelector('#density-layer-toggle') as HTMLInputElement).checked).toBe(false);
-    expect((document.querySelector('#show-finisher-numbers') as HTMLInputElement).checked).toBe(false);
-    expect(document.querySelector('#finisher-numbers-status')?.textContent).toBe('Off');
+    expect((document.querySelector('#show-finisher-numbers') as HTMLInputElement).checked).toBe(true);
+    expect(document.querySelector('#finisher-numbers-status')?.textContent).toBe('On');
     expect((document.querySelector('#start-playback-button') as HTMLButtonElement).disabled).toBe(false);
     expect((document.querySelector('#pause-playback-button') as HTMLButtonElement).disabled).toBe(true);
     expect((document.querySelector('#reset-playback-button') as HTMLButtonElement).disabled).toBe(false);

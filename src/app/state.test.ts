@@ -65,8 +65,11 @@ function response(text: string): Response {
 }
 
 describe('AppController state transitions', () => {
-  it('initializes finisher-number presentation disabled', () => {
-    expect(new AppController().state.showFinisherNumbers).toBe(false);
+  it('initializes presentation defaults with markers and finisher numbers enabled, density disabled', () => {
+    const state = new AppController().state;
+
+    expect(state.layers).toEqual({ markers: true, density: false });
+    expect(state.showFinisherNumbers).toBe(true);
   });
 
   it('commits valid inputs atomically and retains references and derived state after failed replacements', () => {
@@ -204,6 +207,7 @@ describe('AppController state transitions', () => {
     controller.loadInitial(success(course), success(participants));
     controller.updateSnapshot(simulate(course, participants, 30));
     controller.setPlayback('running');
+    controller.setShowFinisherNumbers(false);
     const before = controller.state;
     const beforeSnapshot = before.snapshot;
     const beforePositions = beforeSnapshot?.positions;
@@ -300,17 +304,17 @@ describe('AppController state transitions', () => {
     const beforeToggle = controller.state;
 
     const markersHidden = controller.toggleLayer('markers');
-    expect(markersHidden.layers).toEqual({ markers: false, density: true });
+    expect(markersHidden.layers).toEqual({ markers: false, density: false });
     expect(markersHidden.simulationTimeSeconds).toBe(beforeToggle.simulationTimeSeconds);
     expect(markersHidden.snapshot).toBe(beforeToggle.snapshot);
 
     const densityHidden = controller.toggleLayer('density');
-    expect(densityHidden.layers).toEqual({ markers: false, density: false });
+    expect(densityHidden.layers).toEqual({ markers: false, density: true });
     expect(densityHidden.simulationTimeSeconds).toBe(beforeToggle.simulationTimeSeconds);
     expect(densityHidden.snapshot).toBe(beforeToggle.snapshot);
 
     const markersShown = controller.setLayerVisibility('markers', true);
-    expect(markersShown.layers).toEqual({ markers: true, density: false });
+    expect(markersShown.layers).toEqual({ markers: true, density: true });
     expect(markersShown.snapshot).toBe(beforeToggle.snapshot);
   });
 });
@@ -349,6 +353,8 @@ describe('InputCoordinator state transitions', () => {
     });
 
     await coordinator.loadBundledExamples();
+    controller.setLayerVisibility('density', true);
+    controller.setShowFinisherNumbers(false);
     await coordinator.replaceCourseFile(new File(['replacement-course'], 'replacement.gpx'));
     await coordinator.replaceResultsFile(new File(['replacement-results'], 'replacement.html'));
     const beforeFailedReplacement = controller.state;
@@ -382,6 +388,8 @@ describe('InputCoordinator state transitions', () => {
       lat: exampleCourse.points[0].lat,
       lon: exampleCourse.points[0].lon,
     });
+    expect(reset.state.layers).toEqual({ markers: true, density: true });
+    expect(reset.state.showFinisherNumbers).toBe(false);
   });
 });
 
