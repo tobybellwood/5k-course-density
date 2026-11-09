@@ -142,7 +142,7 @@ describe('marker styling preserves popup fields and safe names', () => {
     expect(marker.finishDurationSeconds).toBe(3_725);
     expect(marker.simulationTimeSeconds).toBe(75);
     expect(popup.textContent).toBe(
-      `Participant: ${displayName}Finish time: 1:02:05Simulation time: 1:15`,
+      `Participant: ${displayName}Course completion: 100%Finish time: 1:02:05Simulation time: 1:15`,
     );
     expect(popup.querySelector('img')).toBeNull();
     expect(popup.innerHTML).toContain('&lt;img');

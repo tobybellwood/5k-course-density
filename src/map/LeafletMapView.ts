@@ -90,6 +90,13 @@ function formatDuration(seconds: number): string {
   return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
 }
 
+function formatCompletionPercentage(routeFraction: number): string {
+  const percentage = Number.isFinite(routeFraction)
+    ? Math.round(routeFraction * 100)
+    : 0;
+  return `${Math.min(100, Math.max(0, percentage))}%`;
+}
+
 function appendPopupRow(container: HTMLElement, label: string, value: string): void {
   const row = document.createElement('div');
   const labelElement = document.createElement('strong');
@@ -107,6 +114,7 @@ export function createParticipantPopupContent(
 ): HTMLElement {
   const content = document.createElement('div');
   appendPopupRow(content, 'Participant', marker.displayName);
+  appendPopupRow(content, 'Course completion', formatCompletionPercentage(marker.routeFraction));
   appendPopupRow(content, 'Finish time', formatDuration(marker.finishDurationSeconds));
   appendPopupRow(content, 'Simulation time', formatDuration(marker.simulationTimeSeconds));
   return content;

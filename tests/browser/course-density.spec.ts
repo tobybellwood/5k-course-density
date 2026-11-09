@@ -198,6 +198,7 @@ test.describe('built static course density application', () => {
       (marker as HTMLElement).click();
     });
     await expect(page.locator('.leaflet-popup')).toContainText('Participant');
+    await expect(page.locator('.leaflet-popup')).toContainText('Course completion: 0%');
     await expect(page.locator('.leaflet-popup')).toContainText('Finish time');
     await expect(page.locator('.leaflet-popup')).toContainText('Simulation time');
 
@@ -296,6 +297,7 @@ test.describe('built static course density application', () => {
 
     await longestMarker.evaluate((marker) => (marker as HTMLElement).click());
     await expect(page.locator('.leaflet-popup')).toContainText('Participant: Longest & Safe');
+    await expect(page.locator('.leaflet-popup')).toContainText(/Course completion: \d+%/);
     await expect(page.locator('.leaflet-popup')).toContainText('Finish time: 1:00');
     await expect(page.locator('.leaflet-popup')).toContainText(`Simulation time: ${pausedTime}`);
     await expect(page.locator('.leaflet-popup img, .leaflet-popup b')).toHaveCount(0);
@@ -389,6 +391,7 @@ test.describe('built static course density application', () => {
 
     await longestMarker.click();
     await expect(page.locator('.leaflet-popup')).toContainText('Participant: Longest & Safe');
+    await expect(page.locator('.leaflet-popup')).toContainText(/Course completion: \d+%/);
     await expect(page.locator('.leaflet-popup')).toContainText('Finish time: 10:00');
     await expect(page.locator('.leaflet-popup img, .leaflet-popup b')).toHaveCount(0);
     await page.locator('#map').click({ position: { x: 10, y: 10 } });
@@ -454,6 +457,7 @@ test.describe('built static course density application', () => {
     await expect(page.locator('#playback-state')).toHaveText('Paused');
     await longestMarker.click();
     await expect(page.locator('.leaflet-popup')).toContainText('Participant: Longest & Safe');
+    await expect(page.locator('.leaflet-popup')).toContainText(/Course completion: \d+%/);
     await expect(page.locator('.leaflet-popup')).toContainText('Finish time: 10:00');
     await expect(page.locator('.leaflet-popup')).toContainText(`Simulation time: ${await page.locator('#simulation-time').textContent()}`);
     await expect(page.locator('.leaflet-popup img, .leaflet-popup b')).toHaveCount(0);

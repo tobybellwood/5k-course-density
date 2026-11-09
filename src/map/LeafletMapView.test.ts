@@ -710,12 +710,12 @@ describe('LeafletMapView', () => {
     expect(laterDensity).toHaveLength(1);
     expect(laterDensity).not.toEqual(initialDensity);
     expect(markers[0].popup?.textContent).toBe(
-      'Participant: <img src=x onerror=alert(1)>Finish time: 10:00Simulation time: 10:00',
+      'Participant: <img src=x onerror=alert(1)>Course completion: 100%Finish time: 10:00Simulation time: 10:00',
     );
     expect(markers[0].popup?.querySelector('img')).toBeNull();
     expect(markers[0].popup?.innerHTML).toContain('&lt;img');
     expect(markers[1].popup?.textContent).toBe(
-      'Participant: Longest <b>Finisher</b>Finish time: 15:00Simulation time: 10:00',
+      'Participant: Longest <b>Finisher</b>Course completion: 67%Finish time: 15:00Simulation time: 10:00',
     );
     expect(markers[1].popup?.querySelector('b')).toBeNull();
     expect(view.isLayerVisible('markers')).toBe(false);
@@ -761,9 +761,10 @@ describe('LeafletMapView', () => {
     expect(defaultMarkers[1].options.icon).toBeInstanceOf(leafletState.MockDefaultIcon);
   });
 
-  it('renders popup content with participant, finish, and simulation times', () => {
+  it('renders popup content with participant, completion, finish, and simulation times', () => {
     const marker: MarkerDescriptor = {
       ...createPosition('runner-1', 'Ada Example', { lat: 51.5, lon: -0.1 }, 3_725),
+      routeFraction: 0.674,
       simulationTimeSeconds: 75,
       finisherRank: 1,
       icon: { kind: 'default', rank: null },
@@ -773,7 +774,7 @@ describe('LeafletMapView', () => {
     const popup = createParticipantPopupContent(marker);
 
     expect(popup.textContent).toBe(
-      'Participant: Ada ExampleFinish time: 1:02:05Simulation time: 1:15',
+      'Participant: Ada ExampleCourse completion: 67%Finish time: 1:02:05Simulation time: 1:15',
     );
   });
 
@@ -789,6 +790,7 @@ describe('LeafletMapView', () => {
     const popup = createParticipantPopupContent(marker);
 
     expect(popup.textContent).toContain('<img src=x onerror=alert(1)>');
+    expect(popup.textContent).toContain('Course completion: 50%');
     expect(popup.querySelector('img')).toBeNull();
     expect(popup.innerHTML).toContain('&lt;img');
   });
