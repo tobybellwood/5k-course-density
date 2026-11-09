@@ -16,7 +16,9 @@
     "check": "npm run typecheck && npm run typecheck:config && npm run typecheck:test && npm run test"
   },
   "dependencies": {
-    "leaflet": "^1.9.4"
+    "@maplibre/maplibre-gl-leaflet": "^0.1.4",
+    "leaflet": "^1.9.4",
+    "maplibre-gl": "^6.17.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",

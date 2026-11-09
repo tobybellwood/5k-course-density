@@ -33,6 +33,10 @@ export async function bootstrapApplication(
     mapView = new LeafletMapView('map', {
       densitySettings: appController.state.densitySettings,
       layerVisibility: appController.state.layers,
+      onBasemapError: (error) => {
+        mapNotice = `The OpenFreeMap basemap is unavailable. The route, markers, density, playback, and status remain usable. ${errorMessage(error, 'Unknown basemap error.')}`;
+        domView.renderNotice(mapNotice);
+      },
     });
   } catch (error) {
     mapNotice = `The map could not be initialized. Parser and playback status remain available. ${errorMessage(error, 'Unknown map initialization error.')}`;
@@ -111,6 +115,10 @@ export async function bootstrapApplication(
       mapView.syncLayerVisibility(state.layers);
     } catch (error) {
       mapNotice = `The map could not render the current input. Parser and playback status remain available. ${errorMessage(error, 'Unknown map rendering error.')}`;
+      domView.renderNotice(mapNotice);
+    }
+
+    if (mapNotice !== null) {
       domView.renderNotice(mapNotice);
     }
   };

@@ -24,7 +24,7 @@ describe('static production build', () => {
       env: { ...process.env, CI: 'true' },
       stdio: 'inherit',
     });
-  });
+  }, 30_000);
 
   it('emits a self-contained app entrypoint and both bundled example assets', () => {
     const entrypointPath = resolve(distDirectory, 'index.html');
@@ -53,11 +53,35 @@ describe('static production build', () => {
 
     for (const scriptReference of scriptReferences) {
       expect(scriptReference).not.toMatch(/^https?:\/\//);
+      expect(scriptReference).not.toMatch(/^\/assets\//);
       const scriptPath = resolveStaticReference(scriptReference);
       expect(statSync(scriptPath).size).toBeGreaterThan(0);
 
       const script = readFileSync(scriptPath, 'utf8');
       expect(script).not.toMatch(/["'`]\/api(?:\/|["'`])/);
+      expect(script).not.toMatch(/["'`]\/assets\//);
+      if (script.includes('maplibre-gl-worker-')) {
+        expect(script).toMatch(/new URL\("maplibre-gl-worker-[^"]+\.js",import\.meta\.url\)/);
+      }
+    }
+
+    const stylesheetReferences = [...entrypoint.matchAll(/<link[^>]+href=["']([^"']+\.css)["']/g)].map(
+      (match) => match[1],
+    );
+    expect(stylesheetReferences.length).toBeGreaterThan(0);
+    for (const stylesheetReference of stylesheetReferences) {
+      expect(stylesheetReference).not.toMatch(/^\//);
+      const stylesheetPath = resolveStaticReference(stylesheetReference);
+      expect(statSync(stylesheetPath).size).toBeGreaterThan(0);
+      expect(readFileSync(stylesheetPath, 'utf8')).toContain('.maplibregl-map');
+    }
+
+    const workerAssets = emittedAssets.filter((asset) => /^maplibre-gl-worker-[^/]+\.js$/.test(asset));
+    expect(workerAssets.length).toBeGreaterThan(0);
+    for (const workerAsset of workerAssets) {
+      expect(statSync(resolve(assetDirectory, workerAsset)).size).toBeGreaterThan(0);
+      const projectPathUrl = new URL(`./assets/${workerAsset}`, 'https://example.test/5k-course-density/');
+      expect(projectPathUrl.pathname).toBe(`/5k-course-density/assets/${workerAsset}`);
     }
 
     for (const example of bundledExamples) {

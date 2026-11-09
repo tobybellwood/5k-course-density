@@ -2,7 +2,7 @@
 
 ## Overview
 
-Build a static browser application with vanilla TypeScript, Vite, Leaflet, and a small pure-function domain layer. The application loads the supplied GPX route and saved results HTML from bundled example assets, parses optional local replacements in the browser, infers participant positions using constant pace, and renders synchronized marker and density layers during 60x playback. A default-off presentation switch can replace marker icons with stable competition-ranked finisher numbers without changing simulation behavior.
+Build a static browser application with vanilla TypeScript, Vite, Leaflet, MapLibre GL, `@maplibre/maplibre-gl-leaflet`, and a small pure-function domain layer. The application loads the supplied GPX route and saved results HTML from bundled example assets, parses optional local replacements in the browser, infers participant positions using constant pace, and renders a default-enabled OpenFreeMap Liberty basemap with synchronized route, marker, and density layers during 60x playback. A default-off presentation switch can replace marker icons with stable competition-ranked finisher numbers without changing simulation behavior.
 
 The design keeps all domain calculations independent of the map and DOM. This makes parsing, timing, interpolation, and density behavior testable without a browser while keeping file handling and Leaflet integration small. The production build is static output that can be hosted from any static file server or opened through a local development server.
 
@@ -21,17 +21,20 @@ The design keeps all domain calculations independent of the map and DOM. This ma
 - Provide a default-off `Show finisher numbers` presentation switch that can replace marker icons with stable competition ranks.
 - Keep parsing and simulation usable in tests without Leaflet or browser timing APIs.
 - Provide a full-HD desktop composition that uses the full viewport, dedicates an approximately 20% left control rail to the application controls and status content, and gives the remaining approximately 80% to the map.
+- Enable the OpenFreeMap Liberty style at `https://tiles.openfreemap.org/styles/liberty` by default through MapLibre GL and the Leaflet adapter, while preserving the existing plain-map fallback when network map data fails.
+- Keep OpenFreeMap and OpenStreetMap attribution visible in the Leaflet map controls and keep all application overlays above the basemap.
+- Build MapLibre workers, CSS, and other emitted assets through Vite without root-relative URLs so the application works at a GitHub Pages project path.
 
 ### Non-goals
 
 - GPS trace reconstruction or participant-specific pacing changes.
 - Server-side parsing, persistence, accounts, or uploaded-file storage.
 - Live race tracking or network retrieval of result pages.
-- A terrain or satellite basemap. The route remains visible without a basemap; an optional tile layer can be enabled when network access is available.
+- Terrain or satellite basemap providers, custom basemap editing, a basemap API key, or a server-side tile/style proxy. The Liberty basemap may be unavailable and must then fall back to the existing plain map surface.
 
 ## Technology and Project Structure
 
-Use TypeScript compiled by Vite into static browser assets. Use Leaflet for the geographic viewport and vector layers. Use the browser `DOMParser`, `File.text()`, `requestAnimationFrame`, and standard DOM events. Use CSS for the responsive two-column layout, the full-height desktop control rail and map split, and status/control styling.
+Use TypeScript compiled by Vite into static browser assets. Use Leaflet for the geographic viewport and application vector layers, MapLibre GL for the OpenFreeMap Liberty vector style, and `@maplibre/maplibre-gl-leaflet` to attach the MapLibre basemap to the Leaflet map. Use the browser `DOMParser`, `File.text()`, `requestAnimationFrame`, and standard DOM events. Import `maplibre-gl/dist/maplibre-gl.css` and configure MapLibre's worker with Vite's emitted `?worker&url` asset; the worker URL must be derived from the build rather than written as a root-relative path. Use CSS for the responsive two-column layout, the full-height desktop control rail and map split, and status/control styling.
 
 Suggested structure:
 
@@ -64,7 +67,7 @@ public/
     results _ Riverbank parkrun.html
 ```
 
-The example files should be copied or referenced from `public/examples` so Vite serves them as static assets. The original files at the workspace root are the source assets for this copy. No runtime request should depend on the original workspace path.
+The example files should be copied or referenced from `public/examples` so Vite serves them as static assets. The original files at the workspace root are the source assets for this copy. No runtime request should depend on the original workspace path. Runtime dependencies include `leaflet`, `maplibre-gl`, and `@maplibre/maplibre-gl-leaflet`; the build must include Leaflet and MapLibre styles and the emitted MapLibre worker asset. No API key or server-side proxy is required.
 
 ## Architecture
 
@@ -85,7 +88,10 @@ Bundled example files / local File objects
              /             \
      Marker descriptors   Density cells
              \             /
-              LeafletMapView
+            LeafletMapView
+                  |
+        OpenFreeMap Liberty basemap
+        (MapLibre GL Leaflet adapter)
                   |
         DOM status and controls
 
@@ -122,8 +128,9 @@ Density settings are initialized to a 25-meter Grid Size, a Minimum People-per-C
 ### `AppController`
 
 - Owns `ApplicationState` and coordinates input, playback, status, and view updates.
-- Loads both bundled example files on startup using `fetch` against the static `/examples/` paths.
+- Loads both bundled example files on startup using URLs constructed from Vite's configured `import.meta.env.BASE_URL`, never root-relative `/examples/` paths.
 - Exposes reset-to-example behavior by loading the bundled sources again.
+- Leaves basemap lifecycle and network failure state in the map view; a basemap failure does not mutate application inputs, simulation state, or playback state.
 - Converts parser results into transactional state commits.
 - Enables playback only when both a valid course and at least one participant exist.
 - Validates density-setting edits, persists accepted settings for the current browser session, and recomputes density immediately without resetting playback or participant positions.
@@ -170,12 +177,23 @@ Density settings are initialized to a 25-meter Grid Size, a Minimum People-per-C
 - Clamps time to total duration, emits the terminal snapshot, changes state to `complete`, and stops requesting frames.
 - Provides `start`, `pause`, `reset`, and `dispose` methods. The controller does not know about Leaflet.
 
+### Basemap integration
+
+- Use the exact OpenFreeMap Liberty style URL `https://tiles.openfreemap.org/styles/liberty` with `maplibre-gl` and `@maplibre/maplibre-gl-leaflet`.
+- Configure MapLibre's worker before creating the basemap by importing `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` and passing the emitted URL to `setWorkerUrl`. Vite owns the worker asset URL so it includes the configured base path in local and GitHub Pages builds.
+- Import `maplibre-gl/dist/maplibre-gl.css` alongside Leaflet's CSS. The basemap has no API key and does not require a server-side proxy.
+- Create the MapLibre-to-Leaflet basemap after the Leaflet map exists and enable it by default. Keep it in a dedicated basemap group or adapter-owned layer below the route, density, and marker groups.
+- Register `OpenFreeMap` and `© OpenStreetMap contributors` with the Leaflet attribution control and keep that attribution visible while the basemap is active.
+- Treat style-load, worker, adapter, and tile failures as view-level failures. Remove or disable only the basemap, show a non-blocking notice, and preserve all route, marker, density, playback, popup, and status behavior.
+
 ### `LeafletMapView`
 
 - Creates one Leaflet map and one route polyline.
 - Fits the viewport to route bounds after a successful course commit.
-- Maintains separate route, marker, density, and optional basemap layer groups.
-- Replaces marker and density contents from the same snapshot rather than incrementally deriving one layer from the other.
+- Maintains separate route, marker, density, and default-enabled OpenFreeMap Liberty basemap groups.
+- Adds the basemap before application overlays so route, density, and markers remain above it; marker and density visibility toggles never remove or reorder the basemap.
+- Keeps attribution in Leaflet's map controls when the basemap is active and removes only the failed basemap after a style, worker, adapter, or tile error.
+- Rebuilds marker and density contents from the same snapshot rather than incrementally deriving one layer from the other.
 - Applies each `MarkerDescriptor.style` while creating the marker: default opacity is 1, a finished non-longest marker uses opacity 0.35, and a longest-finisher marker uses a bright-yellow visual treatment with opacity 1.
 - When `showFinisherNumbers` is true, replaces each marker's default icon with a numeric icon containing the descriptor's stable competition rank. The numeric icon preserves the descriptor's opacity and bright-yellow longest-finisher treatment; when false, it uses the default icon.
 - Keeps popup construction independent from marker styling so participant name, finish duration, simulation time, and safe text-node rendering remain unchanged.
@@ -382,17 +400,18 @@ Publish one snapshot after each update. The controller stops at the terminal tim
 
 ## Data Flow
 
-1. `AppController` fetches the two bundled example files in parallel during bootstrap.
-2. Successful text responses go through `GpxParser` and `ResultsParser`.
-3. The controller commits both successful values in one initial state update. If one bundled source fails, the app keeps the other successful value and shows a notice; playback remains disabled until both inputs are valid.
-4. A local file input checks the extension (`.gpx` or `.html`/`.htm`) before reading. The file is read with `File.text()` and parsed in the browser.
-5. A successful replacement commits only that input, resets time to zero, recomputes total duration and snapshot, and refits the map if the course changed.
-6. A failed replacement updates only validation notices and preserves the prior input and snapshot.
-7. Each playback tick calls `SimulationEngine`, then sends the resulting snapshot to `LeafletMapView.renderSnapshot` and `domView.renderStatus`.
-8. Marker and density builders consume the same snapshot object. Layer visibility is applied after both are built and does not trigger simulation.
-9. A valid density-setting event validates and stores the new settings, recomputes only the density render model from the current snapshot, and updates the map, legend, and status synchronously without invoking playback reset or advancing the clock.
-10. A finisher-number switch event updates only `showFinisherNumbers`, rebuilds marker icon presentation from the current snapshot and stable ranks, and updates the switch status without invoking simulation, density aggregation, playback reset, or popup reconstruction.
-11. The settings store uses browser-session storage for the validated settings object. Read failures, malformed stored values, or values that violate the cross-field threshold rule produce a notice and restore defaults; no persistent storage API is used.
+1. `AppController` constructs bundled example URLs from `import.meta.env.BASE_URL` (or an equivalent Vite base-aware URL helper) and fetches both sources in parallel during bootstrap; it never requests root-relative `/examples/` paths.
+2. The map view configures the Vite-emitted MapLibre Worker Asset and attempts the default OpenFreeMap Liberty basemap while the Leaflet map is initialized.
+3. Successful text responses go through `GpxParser` and `ResultsParser`.
+4. The controller commits both successful values in one initial state update. If one bundled source fails, the app keeps the other successful value and shows a notice; playback remains disabled until both inputs are valid.
+5. A local file input checks the extension (`.gpx` or `.html`/`.htm`) before reading. The file is read with `File.text()` and parsed in the browser.
+6. A successful replacement commits only that input, resets time to zero, recomputes total duration and snapshot, and refits the map if the course changed.
+7. A failed replacement updates only validation notices and preserves the prior input and snapshot.
+8. Each playback tick calls `SimulationEngine`, then sends the resulting snapshot to `LeafletMapView.renderSnapshot` and `domView.renderStatus`.
+9. Marker and density builders consume the same snapshot object. Layer visibility is applied after both are built and does not trigger simulation.
+10. A valid density-setting event validates and stores the new settings, recomputes only the density render model from the current snapshot, and updates the map, legend, and status synchronously without invoking playback reset or advancing the clock.
+11. A finisher-number switch event updates only `showFinisherNumbers`, rebuilds marker icon presentation from the current snapshot and stable ranks, and updates the switch status without invoking simulation, density aggregation, playback reset, or popup reconstruction.
+12. The settings store uses browser-session storage for the validated settings object. Read failures, malformed stored values, or values that violate the cross-field threshold rule produce a notice and restore defaults; no persistent storage API is used.
 
 ## Error Handling
 
@@ -404,6 +423,8 @@ Publish one snapshot after each update. The controller stops at the terminal tim
 - Clear transient replacement errors after the next successful replacement, but retain a compact validation summary for excluded rows in the current valid result set.
 - Never allow invalid numeric coordinates, NaN durations, negative time, or an empty marker ID into the domain state.
 - If Leaflet cannot initialize, show a visible map-initialization notice while leaving parser/status output available; this is a view failure, not a reason to discard valid parsed data.
+- If the Liberty style, MapLibre worker, adapter, or tile request fails, show a visible non-blocking basemap notice, remove or disable only the basemap, and leave the route, markers, density, playback, popups, parser output, status controls, and current layer visibility usable on the plain map surface.
+- Resolve bundled example, JavaScript, CSS, and MapLibre worker URLs from Vite's configured base path. Treat any root-relative generated asset URL as a build/deployment defect.
 - Reject unsupported density grid sizes, non-integer minimum filters, non-integer warning thresholds, and warning thresholds less than or equal to the active minimum. Keep the previous valid setting and explain the accepted range or relationship in the notice.
 - Treat a disabled warning threshold as a valid explicit state. If session storage is unavailable or contains invalid density settings, use the documented defaults and display a non-blocking notice.
 - Keep density controls usable at narrow widths; validation notices and legend text must remain readable without obscuring playback controls or the map.
@@ -423,8 +444,9 @@ The page has a header, a control/status panel, and a map region. The control pan
 - Current time, total time, playback state, participant count, active density settings, warning-threshold state, and finisher-number switch state.
 - A density legend that labels the normal low/medium/high colours, identifies the warning colour when enabled, and states that cells below the minimum filter are hidden.
 - Validation summary and an `aria-live` notice region.
+- Leaflet map controls with visible `OpenFreeMap` and `© OpenStreetMap contributors` attribution whenever the basemap is active; a basemap failure notice is non-blocking and does not replace the map controls.
 
-The map always shows the route when a valid course exists. Markers and density are both visible by default when valid participants exist. A selected marker popup reads from its own participant record and the current snapshot time, so it remains accurate after playback updates.
+The map always shows the route when a valid course exists. The OpenFreeMap Liberty basemap is enabled by default when its network resources load successfully, and the map always keeps `OpenFreeMap` and `© OpenStreetMap contributors` attribution in the Leaflet controls. Markers and density are both visible by default when valid participants exist. If the basemap fails, the route, markers, and density remain usable on the plain map surface. A selected marker popup reads from its own participant record and the current snapshot time, so it remains accurate after playback updates.
 
 ### Full-HD desktop layout
 
@@ -453,7 +475,9 @@ Cover:
 - Longest-finisher markers retain bright-yellow styling and opaque opacity when rank icons are enabled, including tied longest finishers.
 - Marker style renders unfinished participants opaque, applies opacity 0.35 at the exact finish boundary and after finishing, highlights the longest finisher in bright yellow before and after finishing, highlights every tied longest finisher, and gives yellow precedence over finished translucency.
 - Marker style recomputation on snapshot rerender changes only marker appearance; simulation time, participant positions, density output, and playback state remain unchanged.
-- Route fit, simultaneous default layers, and replacement reset are tested through the Leaflet adapter with a mocked map.
+- Route fit, simultaneous default layers, default-enabled Liberty basemap, visible attribution, application-overlay ordering, and replacement reset are tested through the Leaflet adapter with a mocked map.
+- Mocked MapLibre/adapter failures for style, worker, and tile requests remove only the basemap and preserve route, markers, density, playback, popups, status, and layer visibility.
+- MapLibre worker configuration uses the Vite-emitted worker URL, includes MapLibre CSS, and never emits a root-relative asset URL.
 - Marker popup content and safe participant-name rendering remain unchanged when marker styles change.
 - Density settings initialize to 25 m, minimum 1, and disabled warning threshold; valid edits apply immediately, invalid edits retain the prior value, and session restoration does not cross a new browser session.
 - Warning threshold equality uses the warning colour, values below the threshold use normal colours, and the threshold validator rejects values equal to or below the minimum filter.
@@ -466,6 +490,8 @@ Cover:
 Use deterministic browser viewport tests for the view-level layout because geometry depends on the rendered browser environment rather than domain inputs. At 1920 by 1080, verify that the application uses the full viewport height, the control rail is approximately 20% wide, the map region occupies the remaining approximately 80%, and the map has positive dimensions that fill the available right-hand area. Verify that the header, controls, playback controls, status, notices, density controls, and legend are visible or reachable within the vertically scrollable rail, that rail scrolling does not hide required content, and that the map and rail do not overlap, clip, or produce horizontal overflow. Verify accessible labels, focus visibility, keyboard operation, and live-region semantics in the desktop arrangement.
 
 Resize or open the application below the desktop breakpoint and verify the existing stacked layout places controls above a usable map, preserves readable labels and focus states, has no horizontal overflow or clipped controls, and preserves simulation and control state across the layout change. These tests should exercise the built static app and should not require a new domain property.
+
+Basemap browser coverage shall intercept the Liberty style request and representative vector-tile requests. The success path shall verify default basemap enablement, visible OpenFreeMap/OpenStreetMap attribution, basemap-underlay ordering, route/marker/density visibility, and continued playback. The failure path shall separately block style loading and simulate tile failure, then verify a visible non-blocking notice, no fatal application error, retained route/marker/density layers, usable status and controls, and unchanged simulation state. Static-build coverage shall serve the production output at both `/` and a GitHub Pages-style project prefix such as `/5k-course-density/`, verify JavaScript, CSS, bundled examples, and the emitted MapLibre worker resolve below the configured prefix, and reject root-relative asset requests.
 
 ### Property tests
 

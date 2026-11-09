@@ -1,8 +1,22 @@
 import 'leaflet/dist/leaflet.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
 import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
+import maplibreGL from '@maplibre/maplibre-gl-leaflet';
+import { setWorkerUrl } from 'maplibre-gl';
+import mapLibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import * as L from 'leaflet';
+
+export const OPENFREEMAP_LIBERTY_STYLE_URL = 'https://tiles.openfreemap.org/styles/liberty';
+export const OPENFREEMAP_ATTRIBUTION = 'OpenFreeMap';
+export const OPENSTREETMAP_ATTRIBUTION = '© OpenStreetMap contributors';
+
+// Vite emits this worker with the configured base path. MapLibre must be configured
+// before a basemap layer is created so worker requests remain valid on static hosts.
+function configureMapLibreWorker(): void {
+  setWorkerUrl(mapLibreWorkerUrl);
+}
 
 // Leaflet's default URLs are package-relative and resolve incorrectly on project pages.
 // Vite-imported assets are emitted with the configured base path instead.
@@ -42,9 +56,11 @@ export type LeafletMapViewOptions = {
   readonly densitySettings?: DensitySettings;
   /** Optional initial values copied from the application layer flags. */
   readonly layerVisibility?: Partial<LeafletLayerVisibility>;
-  /** Optional tile source. The map remains usable without a network basemap. */
+  /** Optional tile source retained for callers that explicitly choose a raster basemap. */
   readonly basemapUrl?: string;
   readonly basemapAttribution?: string;
+  /** Receives isolated Liberty/raster basemap failures without changing app state. */
+  readonly onBasemapError?: (error: unknown) => void;
 };
 
 export type LeafletMapViewLayerGroups = {
@@ -182,6 +198,9 @@ export class LeafletMapView {
 
   private densitySettings: DensitySettings;
   private showFinisherNumbers = false;
+  private basemapLayer: L.Layer | null = null;
+  private basemapFailed = false;
+  private readonly onBasemapError?: (error: unknown) => void;
   private readonly markersByParticipantId = new Map<string, L.Marker>();
   private readonly layerVisibility: Record<LeafletLayerName, boolean> = {
     markers: true,
@@ -196,21 +215,24 @@ export class LeafletMapView {
       ...DEFAULT_MAP_OPTIONS,
       ...options.mapOptions,
     });
+    this.onBasemapError = options.onBasemapError;
     this.densitySettings = options.densitySettings ?? {
       gridSizeMeters: (options.densityGridSizeMeters ?? DEFAULT_DENSITY_GRID_SIZE_METERS) as DensitySettings['gridSizeMeters'],
       minimumPeoplePerCircle: 1,
       warningColourThreshold: null,
     };
 
+    // Add the basemap first so the Leaflet pane/group order keeps every application
+    // overlay above it. An explicit raster URL remains available for legacy hosts.
+    this.basemapLayerGroup = L.layerGroup().addTo(this.map);
+    this.initializeBasemap(options);
     this.routeLayerGroup = L.layerGroup().addTo(this.map);
     this.markerLayerGroup = L.layerGroup().addTo(this.map);
     this.densityLayerGroup = L.layerGroup().addTo(this.map);
-    this.basemapLayerGroup = L.layerGroup().addTo(this.map);
 
-    if (options.basemapUrl !== undefined) {
-      L.tileLayer(options.basemapUrl, {
-        attribution: options.basemapAttribution ?? '',
-      }).addTo(this.basemapLayerGroup);
+    if (options.basemapUrl === undefined) {
+      this.addAttribution(OPENFREEMAP_ATTRIBUTION);
+      this.addAttribution(OPENSTREETMAP_ATTRIBUTION);
     }
 
     if (options.layerVisibility !== undefined) {
@@ -219,6 +241,50 @@ export class LeafletMapView {
         density: options.layerVisibility.density ?? true,
       });
     }
+  }
+
+  private initializeBasemap(options: LeafletMapViewOptions): void {
+    try {
+      if (options.basemapUrl !== undefined) {
+        const rasterLayer = L.tileLayer(options.basemapUrl, {
+          attribution: options.basemapAttribution ?? '',
+        });
+        this.basemapLayer = rasterLayer;
+        this.basemapLayerGroup.addLayer(rasterLayer);
+        return;
+      }
+
+      configureMapLibreWorker();
+      const libertyLayer = maplibreGL({
+        style: OPENFREEMAP_LIBERTY_STYLE_URL,
+        attributionControl: false,
+      });
+      this.basemapLayer = libertyLayer;
+      this.basemapLayerGroup.addLayer(libertyLayer);
+
+      const maplibreMap = libertyLayer.getMaplibreMap();
+      maplibreMap?.on('error', (event: unknown) => {
+        this.disableBasemap(event);
+      });
+    } catch (error) {
+      this.disableBasemap(error);
+    }
+  }
+
+  private addAttribution(attribution: string): void {
+    this.map.attributionControl?.addAttribution(attribution);
+  }
+
+  private disableBasemap(error: unknown): void {
+    if (this.basemapFailed) {
+      return;
+    }
+    this.basemapFailed = true;
+    if (this.basemapLayer !== null) {
+      this.basemapLayerGroup.removeLayer(this.basemapLayer);
+      this.basemapLayer = null;
+    }
+    this.onBasemapError?.(error);
   }
 
   public get layerGroups(): LeafletMapViewLayerGroups {

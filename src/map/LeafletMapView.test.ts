@@ -7,6 +7,10 @@ const leafletState = vi.hoisted(() => {
     public readonly layers = new Set<unknown>();
     public readonly fitBounds = vi.fn();
     public readonly remove = vi.fn();
+    public readonly attributionControl = {
+      addAttribution: vi.fn(),
+      removeAttribution: vi.fn(),
+    };
 
     public addLayer(layer: unknown): this {
       this.layers.add(layer);
@@ -36,6 +40,14 @@ const leafletState = vi.hoisted(() => {
 
     public clearLayers(): this {
       this.layers.length = 0;
+      return this;
+    }
+
+    public removeLayer(layer: unknown): this {
+      const index = this.layers.indexOf(layer);
+      if (index >= 0) {
+        this.layers.splice(index, 1);
+      }
       return this;
     }
   }
@@ -108,6 +120,55 @@ const leafletState = vi.hoisted(() => {
   };
 });
 
+const maplibreState = vi.hoisted(() => {
+  class MockMapLibreMap {
+    public readonly handlers = new Map<string, (event: unknown) => void>();
+
+    public on(event: string, handler: (event: unknown) => void): this {
+      this.handlers.set(event, handler);
+      return this;
+    }
+
+    public emit(event: string, value: unknown): void {
+      this.handlers.get(event)?.(value);
+    }
+  }
+
+  class MockMapLibreLayer {
+    public readonly map = new MockMapLibreMap();
+
+    public constructor(public readonly options: Record<string, unknown>) {}
+
+    public getMaplibreMap(): MockMapLibreMap {
+      return this.map;
+    }
+  }
+
+  return {
+    MockMapLibreLayer,
+    layers: [] as MockMapLibreLayer[],
+    workerUrls: [] as string[],
+  };
+});
+
+vi.mock('maplibre-gl', () => ({
+  setWorkerUrl: vi.fn((url: string) => {
+    maplibreState.workerUrls.push(url);
+  }),
+}));
+
+vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url', () => ({
+  default: 'assets/maplibre-gl-worker.js',
+}));
+
+vi.mock('@maplibre/maplibre-gl-leaflet', () => ({
+  default: vi.fn((options: Record<string, unknown>) => {
+    const layer = new maplibreState.MockMapLibreLayer(options);
+    maplibreState.layers.push(layer);
+    return layer;
+  }),
+}));
+
 vi.mock('leaflet', () => ({
   circle: vi.fn((coordinate: readonly [number, number], options: Record<string, unknown>) => {
     const circle = new leafletState.MockCircle(coordinate, options);
@@ -153,7 +214,13 @@ import type {
   ParticipantPosition,
   SimulationSnapshot,
 } from '../app/types';
-import { LeafletMapView, createParticipantPopupContent } from './LeafletMapView';
+import {
+  LeafletMapView,
+  OPENFREEMAP_ATTRIBUTION,
+  OPENFREEMAP_LIBERTY_STYLE_URL,
+  OPENSTREETMAP_ATTRIBUTION,
+  createParticipantPopupContent,
+} from './LeafletMapView';
 
 function createCourse(): CourseTrack {
   return {
@@ -213,7 +280,52 @@ describe('LeafletMapView', () => {
     leafletState.layerGroups.length = 0;
     leafletState.polylines.length = 0;
     leafletState.bounds.length = 0;
+    maplibreState.layers.length = 0;
+    maplibreState.workerUrls.length = 0;
   });
+
+  it('creates the default Liberty basemap below application overlays with attribution', () => {
+    const view = new LeafletMapView('map', { map: new leafletState.MockMap() as never });
+    const map = mockMapForView(view);
+
+    expect(maplibreState.workerUrls).toEqual(['assets/maplibre-gl-worker.js']);
+    expect(maplibreState.layers).toHaveLength(1);
+    expect(maplibreState.layers[0].options).toEqual({
+      style: OPENFREEMAP_LIBERTY_STYLE_URL,
+      attributionControl: false,
+    });
+    expect(map.attributionControl.addAttribution).toHaveBeenCalledWith(OPENFREEMAP_ATTRIBUTION);
+    expect(map.attributionControl.addAttribution).toHaveBeenCalledWith(OPENSTREETMAP_ATTRIBUTION);
+    expect([...map.layers]).toEqual([
+      view.basemapLayerGroup,
+      view.routeLayerGroup,
+      view.markerLayerGroup,
+      view.densityLayerGroup,
+    ]);
+    expect(mockLayerGroupForView(view.basemapLayerGroup).layers).toEqual([maplibreState.layers[0]]);
+  });
+
+  it('removes only the basemap when the Liberty layer reports an error', () => {
+    const notices: unknown[] = [];
+    const view = new LeafletMapView('map', {
+      map: new leafletState.MockMap() as never,
+      onBasemapError: (error) => notices.push(error),
+    });
+    view.renderCourse(createCourse());
+    view.renderSnapshot(createSnapshot());
+    const map = mockMapForView(view);
+
+    const error = new Error('style request failed');
+    maplibreState.layers[0].map.emit('error', error);
+
+    expect(notices).toEqual([error]);
+    expect(mockLayerGroupForView(view.basemapLayerGroup).layers).toEqual([]);
+    expect(map.layers.has(view.basemapLayerGroup)).toBe(true);
+    expect(map.layers.has(view.routeLayerGroup)).toBe(true);
+    expect(map.layers.has(view.markerLayerGroup)).toBe(true);
+    expect(map.layers.has(view.densityLayerGroup)).toBe(true);
+  });
+
 
   it('renders the route and fits the map to the course bounds', () => {
     const view = new LeafletMapView('map', { map: new leafletState.MockMap() as never });

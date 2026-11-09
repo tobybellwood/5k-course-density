@@ -20,7 +20,10 @@ The Course Density Visualization Tool is a static browser application for explor
 - **Route Fraction**: A value from 0 through 1 representing progress from the first point to the final point of a Course Track by cumulative route distance.
 - **Playback Controller**: The component that starts, pauses, resets, and advances Simulation Time.
 - **Playback State**: The current playback condition, represented as running, paused, or complete.
-- **Geographic Map**: The visual map surface on which the Course Track, Participant Marker Layer, and Density Layer are rendered.
+- **Geographic Map**: The visual map surface on which the OpenFreeMap Liberty Basemap, Course Track, Participant Marker Layer, and Density Layer are rendered.
+- **OpenFreeMap Liberty Basemap**: The default external vector basemap loaded from `https://tiles.openfreemap.org/styles/liberty` through MapLibre GL and its Leaflet adapter.
+- **MapLibre Worker Asset**: The Vite-emitted worker URL configured for MapLibre GL so the worker loads under the deployment base path.
+- **Project Base URL**: The Vite-configured public path under which the static application and its bundled assets are served, including a GitHub Pages repository path.
 - **Rendered Geographic Area**: A map cell or visual aggregation area used to calculate and display density.
 - **Participant Marker Layer**: The map layer that displays one marker for each valid Participant Record.
 - **Density Layer**: The map layer that represents the number of Participant Positions within each Rendered Geographic Area at the current Simulation Time.
@@ -107,7 +110,7 @@ The Course Density Visualization Tool is a static browser application for explor
 2. IF a selected file has an unsupported file type or cannot be read, THEN THE Static Visualization Tool SHALL display a Validation Notice that names the rejected file and identifies the accepted input type.
 3. IF a results table contains rows that the Results Parser excludes, THEN THE Static Visualization Tool SHALL report the number of excluded rows and the reason categories in the validation summary.
 4. IF a replacement file fails validation, THEN THE Static Visualization Tool SHALL preserve the last valid Course Track or Participant Records for the failed input and keep the built-in example available through reset.
-5. THE Static Visualization Tool SHALL perform GPX parsing, results parsing, position inference, playback, and density calculation in the browser without requiring a server-side service.
+5. THE Static Visualization Tool SHALL perform GPX parsing, results parsing, position inference, playback, density calculation, and basemap integration in the browser without requiring a server-side service, API key, or server-side proxy. Bundled asset URLs SHALL resolve below the configured Project Base URL, and the application SHALL remain usable when the external basemap is unavailable.
 
 ### Requirement 6: Configure density visualization settings
 
@@ -173,3 +176,18 @@ The Course Density Visualization Tool is a static browser application for explor
 6. WHEN the Static Visualization Tool displays the full-HD desktop layout, THE Static Visualization Tool SHALL preserve accessible labels, keyboard operation, visible focus states, and status or notice semantics for every control and live region.
 7. WHEN the viewport is narrower than the desktop breakpoint, THE Static Visualization Tool SHALL switch to the existing responsive stacked layout, keep the map usable below the controls, and SHALL NOT introduce horizontal overflow or clipped controls.
 8. WHEN the Static Visualization Tool changes between the desktop and narrow responsive layouts, THE Static Visualization Tool SHALL preserve the current Simulation Time, Playback State, Participant Positions, Density Layer output, and active control values.
+
+### Requirement 10: Provide a default OpenFreeMap Liberty basemap
+
+**User Story:** As a race analyst, I want geographic context behind the course visualization, so that route position and congestion can be interpreted against a recognizable map while preserving the visualization when network map data is unavailable.
+
+#### Acceptance Criteria
+
+1. WHEN the Geographic Map initializes, THE Static Visualization Tool SHALL attempt to load the OpenFreeMap Liberty style from `https://tiles.openfreemap.org/styles/liberty` through `maplibre-gl` and `@maplibre/maplibre-gl-leaflet`.
+2. WHEN the OpenFreeMap Liberty Basemap loads successfully, THE Static Visualization Tool SHALL enable it by default without requiring a user action, while retaining the existing default-visible Course Track, Participant Marker Layer, and Density Layer.
+3. WHEN the OpenFreeMap Liberty Basemap is enabled, THE Static Visualization Tool SHALL render it below the Course Track, Density Layer, and Participant Marker Layer, with the Participant Marker Layer remaining the topmost application overlay.
+4. WHEN the OpenFreeMap Liberty Basemap is displayed, THE Geographic Map SHALL show `OpenFreeMap` and `© OpenStreetMap contributors` attribution in the Leaflet map controls, and the attribution SHALL remain visible while the map is usable.
+5. IF the Liberty style request, MapLibre worker initialization, MapLibre-to-Leaflet adapter initialization, or a basemap tile request fails, THEN THE Static Visualization Tool SHALL display a visible non-blocking Validation Notice, remove or disable only the failed basemap, and preserve the route, participant markers, density, playback, popups, parser output, and status controls.
+6. WHEN the OpenFreeMap Liberty Basemap is unavailable, THE Static Visualization Tool SHALL keep the Geographic Map usable on the existing plain map surface with the Course Track, Participant Marker Layer, and Density Layer in their current positions and visibility states.
+7. WHEN the Static Visualization Tool loads bundled examples or other emitted application assets, THE Static Visualization Tool SHALL resolve URLs relative to the configured Project Base URL and SHALL NOT use root-relative URLs for example files, JavaScript, CSS, MapLibre worker assets, or other generated map assets. A GitHub Pages project-path deployment SHALL request those assets below its project path without 404 responses.
+8. THE Static Visualization Tool SHALL configure the MapLibre Worker Asset through Vite's emitted worker URL mechanism, and the production build SHALL include the worker and required MapLibre styles without requiring a server-side runtime.

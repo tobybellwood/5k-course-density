@@ -7,17 +7,19 @@ Build the static Vite/TypeScript browser application described in the design. Th
 ## Tasks
 
 - [x] 1. Scaffold the static TypeScript application and bundled example inputs
-  - [x] 1.1 Create the Vite project structure, TypeScript configuration, package scripts, and dependencies for Leaflet, Vitest, fast-check, and browser integration testing.
+  - [x] 1.1 Create the Vite project structure, TypeScript configuration, package scripts, and dependencies for Leaflet, MapLibre GL, `@maplibre/maplibre-gl-leaflet`, Vitest, fast-check, and browser integration testing.
     - Define the source directories and test configuration described in the design.
-    - Keep the production build suitable for static hosting with no server-side runtime.
-    - _Requirements: 5.5_
+    - Include Leaflet and MapLibre styles and configure the MapLibre worker through a Vite-emitted `?worker&url` asset.
+    - Keep the production build suitable for static hosting with no server-side runtime, API key, or root-relative MapLibre asset URL.
+    - _Requirements: 5.5, 10.1, 10.7, 10.8_
   - [x] 1.2 Copy the supplied GPX and saved results HTML into `public/examples` and create the initial `index.html` shell with control, status, notice, and map-region containers.
     - Use the bundled example paths rather than depending on workspace-root files at runtime.
     - Include labels and stable element hooks needed by the later DOM view and browser tests.
     - _Requirements: 1.1, 3.7, 4.1_
-  - [x] 1.3 Add a static-build smoke test that verifies the Vite output includes the application and both example assets.
+  - [x] 1.3 Add a static-build smoke test that verifies the Vite output includes the application, both example assets, required MapLibre CSS, and an emitted MapLibre worker asset.
     - Confirm the built app can operate without a server-side parsing service.
-    - _Requirements: 1.1, 5.5_
+    - Verify generated application, example, stylesheet, and worker URLs can be resolved below a GitHub Pages-style project path rather than from the domain root.
+    - _Requirements: 1.1, 5.5, 10.7, 10.8_
 
 - [x] 2. Implement shared domain models and validation utilities
   - [x] 2.1 Define the TypeScript data models, parser result unions, validation reasons, and application-facing validation summary helpers.
@@ -97,9 +99,10 @@ Build the static Vite/TypeScript browser application described in the design. Th
     - Reset simulation time and recompute total duration/snapshot for successful replacements while preserving the prior valid input and derived data on failures.
     - _Requirements: 1.2, 1.3, 3.4, 3.6, 4.6, 5.1, 5.4_
   - [x] 6.2 Implement bundled-example bootstrap and local file coordination.
-    - Fetch both `/examples/` sources in parallel, parse them in the browser, validate `.gpx`, `.html`, and `.htm` extensions, read `File.text()`, and report named file/read/type failures.
-    - Keep a reset-to-example action available after replacements.
-    - _Requirements: 1.1, 1.2, 1.3, 5.2, 5.4, 5.5_
+    - Fetch both bundled sources in parallel using URLs derived from Vite's configured base URL; do not use root-relative `/examples/` paths.
+    - Parse them in the browser, validate `.gpx`, `.html`, and `.htm` extensions, read `File.text()`, and report named file/read/type failures.
+    - Keep a reset-to-example action available after replacements and verify bootstrap works at a GitHub Pages project path.
+    - _Requirements: 1.1, 1.2, 1.3, 5.2, 5.4, 5.5, 10.7_
   - [x] 6.3 Write state-transition unit tests for atomic commits, failed replacement retention, replacement reset-to-zero behavior, unavailable-input playback state, layer toggles, and example reset.
     - _Requirements: 1.2, 1.3, 1.6, 1.8, 3.6, 4.6, 5.1, 5.4_
 
@@ -113,14 +116,18 @@ Build the static Vite/TypeScript browser application described in the design. Th
     - **Property 10: Both visual layers derive from one snapshot**
     - **Validates: Requirements 4.7**
     - Generate participant collections and snapshots, then assert one marker per participant and identical source time/coordinates across marker and density models.
-  - [x] 7.3 Implement `LeafletMapView` with route polyline, fitted route bounds, separate marker/density/basemap groups, marker popups, and density circles.
+  - [x] 7.3 Implement `LeafletMapView` with route polyline, fitted route bounds, a default-enabled OpenFreeMap Liberty basemap through MapLibre GL and `@maplibre/maplibre-gl-leaflet`, separate marker/density groups, marker popups, and density circles.
+    - Load exactly `https://tiles.openfreemap.org/styles/liberty`, configure the Vite-emitted MapLibre worker, and keep `OpenFreeMap` plus `© OpenStreetMap contributors` visible in Leaflet map controls.
+    - Add the basemap below the route, density, and marker layers; include the basemap in the default map composition without changing simulation state.
     - Rebuild marker and density contents from the same snapshot, include participant name, finish duration, and current simulation time in popups, and assign user-provided values through safe text APIs or escaped content.
-    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
+    - On style, worker, adapter, or tile failure, remove or disable only the basemap, show a non-blocking notice, and preserve all existing map and application behavior.
+    - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
   - [x] 7.4 Implement marker and density visibility toggles without modifying simulation state.
     - Apply both layers by default when valid input exists and preserve time/positions when visibility changes.
     - _Requirements: 4.5, 4.6, 4.7_
-  - [x] 7.5 Write Leaflet adapter tests with a mocked map for route fitting, default simultaneous layers, popup content, safe participant-name rendering, and visibility toggles.
-    - _Requirements: 4.1, 4.3, 4.5, 4.6_
+  - [x] 7.5 Write Leaflet and MapLibre adapter tests with a mocked map for route fitting, default simultaneous application layers, default Liberty basemap, exact style URL, visible attribution, basemap-underlay ordering, popup content, safe participant-name rendering, visibility toggles, and isolated style/tile failure cleanup.
+    - Verify a failed basemap leaves route, markers, density, playback state, status output, and layer visibility usable.
+    - _Requirements: 4.1, 4.3, 4.5, 4.6, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
 - [x] 8. Implement accelerated playback and synchronized status updates
   - [x] 8.1 Implement `PlaybackController` using `requestAnimationFrame`, monotonic frame timestamps, 60 simulated seconds per real second, start/pause/reset/dispose, terminal clamping, and complete-state handling.
@@ -144,15 +151,19 @@ Build the static Vite/TypeScript browser application described in the design. Th
     - Disable playback controls when course or participant input is unavailable while keeping reset-to-example available.
     - Format simulation durations as `M:SS` or `H:MM:SS` and display excluded-row summaries and notices.
     - _Requirements: 3.6, 3.7, 5.2, 5.3_
-  - [x] 9.2 Add responsive CSS for the header, control/status panel, two-column layout, map region, controls, notices, and accessible focus/label styling.
-    - Keep the route visible without requiring a network basemap and ensure the map region remains usable at narrow widths.
-    - _Requirements: 4.1, 5.5_
-  - [x] 9.3 Wire `main.ts` to construct the DOM view, Leaflet view, application controller, playback controller, bundled bootstrap, and event handlers.
-    - Ensure startup loads the supplied example, local replacements are transactional, reset-to-example reloads both bundled sources, and Leaflet initialization failures leave parser/status output available with a visible notice.
-    - _Requirements: 1.1, 1.2, 1.3, 3.6, 4.1, 5.1, 5.4, 5.5_
+  - [x] 9.2 Add responsive CSS for the header, control/status panel, two-column layout, map region, controls, notices, attribution, and accessible focus/label styling.
+    - Enable the Liberty basemap by default while keeping the route, markers, and density usable on the plain map surface when network basemap data is unavailable.
+    - Ensure the map controls and required OpenFreeMap/OpenStreetMap attribution remain visible at narrow widths.
+    - _Requirements: 4.1, 5.5, 10.4, 10.5, 10.6_
+  - [x] 9.3 Wire `main.ts` to construct the DOM view, Leaflet/MapLibre Liberty basemap view, application controller, playback controller, bundled bootstrap, and event handlers.
+    - Ensure startup loads the supplied example using Vite-base-aware URLs, local replacements are transactional, reset-to-example reloads both bundled sources, and Leaflet or basemap initialization failures leave parser/status output available with a visible non-blocking notice.
+    - Configure the emitted MapLibre worker and preserve route, marker, density, playback, popup, and status behavior when style or tile requests fail.
+    - _Requirements: 1.1, 1.2, 1.3, 3.6, 4.1, 5.1, 5.4, 5.5, 10.1, 10.5, 10.6, 10.7, 10.8_
   - [x] 9.4 Write browser integration tests against the built static app.
-    - Verify built-in startup, local GPX/results replacement, failed replacement retention, playback controls and status, route/markers/density display, popup content, layer toggles, and reset-to-example.
-    - _Requirements: 1.1, 1.2, 1.3, 1.6, 1.8, 3.2, 3.3, 3.4, 3.5, 3.7, 4.1, 4.2, 4.3, 4.5, 4.6, 5.1, 5.2, 5.4_
+    - Verify built-in startup, local GPX/results replacement, failed replacement retention, playback controls and status, route/markers/density display, default Liberty basemap, required attribution, basemap-underlay ordering, popup content, layer toggles, and reset-to-example.
+    - Intercept successful and failed style/tile requests and verify graceful fallback notices, retained overlays, usable controls/status, and continued playback.
+    - Verify root hosting and a GitHub Pages-style project path load JavaScript, CSS, bundled examples, and the MapLibre worker without root-relative asset requests or 404s.
+    - _Requirements: 1.1, 1.2, 1.3, 1.6, 1.8, 3.2, 3.3, 3.4, 3.5, 3.7, 4.1, 4.2, 4.3, 4.5, 4.6, 5.1, 5.2, 5.4, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8_
 
 - [x] 10. Implement configurable density settings and live visualization updates
   - [x] 10.1 Add density settings models, defaults, validation, and browser-session storage.
@@ -301,6 +312,44 @@ Build the static Vite/TypeScript browser application described in the design. Th
   - Run the focused browser integration tests for full-HD geometry, map fill, control-rail scrolling and visibility, no horizontal overflow, and narrow-viewport fallback.
   - Ensure all tests pass, ask the user if questions arise.
 
+- [ ] 20. Implement the OpenFreeMap Liberty basemap and project-path-safe MapLibre assets
+  - [x] 20.1 Add MapLibre runtime dependencies and Vite worker/style configuration.
+    - Add `maplibre-gl` and `@maplibre/maplibre-gl-leaflet` while retaining Leaflet.
+    - Import the MapLibre stylesheet and configure `setWorkerUrl` from the Vite-emitted `maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url` asset.
+    - Verify the worker and CSS URLs are emitted below the configured project base path and do not use root-relative URLs.
+    - _Requirements: 10.1, 10.7, 10.8_
+  - [x] 20.2 Integrate the default OpenFreeMap Liberty basemap into the Leaflet map. (Depends on 7.3.)
+    - Load exactly `https://tiles.openfreemap.org/styles/liberty` through `@maplibre/maplibre-gl-leaflet`.
+    - Enable the basemap by default, register `OpenFreeMap` and `© OpenStreetMap contributors` in the Leaflet attribution controls, and place the basemap below route, density, and marker layers.
+    - Preserve application state, layer visibility, route fitting, and popup behavior when the basemap is enabled.
+    - _Requirements: 10.1, 10.2, 10.3, 10.4_
+  - [x] 20.3 Add graceful basemap failure handling.
+    - Handle Liberty style, MapLibre worker, adapter, and representative tile failures with a visible non-blocking notice.
+    - Remove or disable only the failed basemap and preserve route, markers, density, playback, popups, parser output, status controls, and current layer visibility on the plain map surface.
+    - _Requirements: 10.5, 10.6_
+  - [ ] 20.4 Make bundled asset URLs Vite-base and GitHub Pages safe. (Depends on 6.2.)
+    - Replace root-relative bundled-example requests and any root-relative MapLibre worker or generated asset references with Vite-base-aware URLs.
+    - Verify both root hosting and a project-prefix deployment such as `/5k-course-density/` request JavaScript, CSS, examples, and the worker below the active prefix without 404s.
+    - _Requirements: 5.5, 10.7, 10.8_
+
+- [ ] 21. Test Liberty basemap and static deployment behavior
+  - [ ] 21.1 Add unit and mocked-map/adapter coverage for the default basemap.
+    - Verify the exact Liberty style URL, default enablement, visible OpenFreeMap/OpenStreetMap attribution, basemap-underlay ordering, and preservation of route/marker/density layers.
+    - Verify style, worker, adapter, and tile failure cleanup removes only the basemap and leaves application state unchanged.
+    - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
+  - [ ] 21.2 Add browser integration coverage for basemap success and graceful fallback.
+    - Intercept successful style and tile requests to verify default basemap, attribution, overlay ordering, route/marker/density visibility, and continued playback.
+    - Block the style request and separately simulate tile failure to verify a visible non-blocking notice, no fatal error, retained overlays and controls, and unchanged simulation state.
+    - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
+  - [ ] 21.3 Extend static-build coverage for project-path asset URLs.
+    - Serve or inspect the production build at `/` and `/5k-course-density/` and verify JavaScript, CSS, bundled examples, MapLibre CSS, and the emitted worker resolve below the active prefix.
+    - Assert that no root-relative example, worker, stylesheet, or generated map-asset request is required.
+    - _Requirements: 1.1, 5.5, 10.7, 10.8_
+
+- [ ] 22. Checkpoint - Ensure Liberty basemap and project-path tests pass
+  - Run the focused unit, mocked-map, static-build, and browser suites for default basemap enablement, attribution, layer ordering, failure fallback, and project-path asset resolution.
+  - Ensure all tests pass, ask the user if questions arise.
+
 ## Notes
 
 - Tasks marked with `*` are optional test tasks and may be skipped for a faster MVP, but they document the required validation coverage.
@@ -314,6 +363,8 @@ Build the static Vite/TypeScript browser application described in the design. Th
 - Browser tests use a fresh browser context when verifying that settings do not persist across visits.
 - Browser integration tests cover Leaflet, file inputs, playback controls, and static-app behavior that pure domain tests cannot cover.
 - Full-HD layout tests use a deterministic 1920 by 1080 viewport to verify the approximately 20/80 control-rail and map geometry, map fill, rail scrolling and visibility, no horizontal overflow, accessible focus behavior, and narrow-viewport fallback. Layout work remains a view-level concern and must preserve simulation state; the layout checkpoint is validation-only and is excluded from the dependency graph.
+- OpenFreeMap Liberty basemap tasks keep the external style default-enabled but treat style, worker, adapter, and tile failures as isolated view failures; the route, markers, density, playback, and status remain usable without the basemap.
+- MapLibre worker and generated-asset tests must exercise a GitHub Pages-style project prefix and reject root-relative URLs.
 - Checkpoint tasks are validation points only and are not included in the dependency graph.
 
 ## Task Dependency Graph
@@ -345,7 +396,12 @@ Build the static Vite/TypeScript browser application described in the design. Th
     { "id": 21, "tasks": ["17.1"] },
     { "id": 22, "tasks": ["17.2"] },
     { "id": 23, "tasks": ["17.3"] },
-    { "id": 24, "tasks": ["18.1", "18.2"] }
+    { "id": 24, "tasks": ["18.1", "18.2"] },
+    { "id": 25, "tasks": ["20.1"] },
+    { "id": 26, "tasks": ["20.2", "20.4"] },
+    { "id": 27, "tasks": ["20.3"] },
+    { "id": 28, "tasks": ["21.1", "21.2", "21.3"] },
+    { "id": 29, "tasks": ["22"] }
   ]
 }
 ```
