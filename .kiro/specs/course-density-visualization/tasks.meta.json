@@ -238,7 +238,7 @@
         "timestamp": 1794105425678
       }
     ],
-    "4.1 Implement the results parser for the saved Riverbank table and fallback ordinary tables.": [
+    "4.1 Implement the results parser for the saved 62 people table and fallback ordinary tables.": [
       {
         "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
         "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",
@@ -306,7 +306,7 @@
         "timestamp": 1794105425749
       }
     ],
-    "4.5 Write example tests for the supplied Riverbank HTML, compact event-time selection, duplicate names, header-only tables, empty tables, and all-invalid files.": [
+    "4.5 Write example tests for the supplied 62 people HTML, compact event-time selection, duplicate names, header-only tables, empty tables, and all-invalid files.": [
       {
         "executionId": "0c918552-c634-44b0-947f-3306cc264ade",
         "chatSessionId": "sess_4bdefde5-affc-4520-8b1d-1ac6022bbd9a",

@@ -8,8 +8,8 @@ const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const distDirectory = resolve(projectRoot, 'dist');
 
 const bundledExamples = [
-  'examples/Cricket_Captains_Walk_parkrun.gpx',
-  'examples/results _ Riverbank parkrun.html',
+  'examples/Example_parkrun.gpx',
+  'examples/results _ 62 people.html',
 ] as const;
 
 function resolveStaticReference(reference: string): string {
@@ -35,8 +35,8 @@ describe('static production build', () => {
 
     expect(statSync(entrypointPath).size).toBeGreaterThan(0);
     expect(scriptReferences.length).toBeGreaterThan(0);
-    expect(entrypoint).toContain('./examples/Cricket_Captains_Walk_parkrun.gpx');
-    expect(entrypoint).toContain('./examples/results%20_%20Riverbank%20parkrun.html');
+    expect(entrypoint).toContain('./examples/Example_parkrun.gpx');
+    expect(entrypoint).toContain('./examples/results%20_%2062%20people.html');
 
     const assetDirectory = resolve(distDirectory, 'assets');
     const markerAssets = [

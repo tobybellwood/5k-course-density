@@ -10,7 +10,7 @@ The design keeps all domain calculations independent of the map and DOM. This ma
 
 ### Goals
 
-- Load the supplied `Cricket_Captains_Walk_parkrun.gpx` and `results _ Riverbank parkrun.html` as the default example.
+- Load the supplied `Example_parkrun.gpx` and `results _ 62 people.html` as the default example.
 - Allow local GPX and HTML result-file replacement without a backend.
 - Preserve the previous valid input when a replacement fails.
 - Simulate all valid participants with a constant-pace model.
@@ -63,8 +63,8 @@ src/
   styles.css
 public/
   examples/
-    Cricket_Captains_Walk_parkrun.gpx
-    results _ Riverbank parkrun.html
+    Example_parkrun.gpx
+    results _ 62 people.html
 ```
 
 The example files should be copied or referenced from `public/examples` so Vite serves them as static assets. The original files at the workspace root are the source assets for this copy. No runtime request should depend on the original workspace path. Runtime dependencies include `leaflet`, `maplibre-gl`, and `@maplibre/maplibre-gl-leaflet`; the build must include Leaflet and MapLibre styles and the emitted MapLibre worker asset. No API key or server-side proxy is required.

@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The Course Density Visualization Tool is a static browser application for exploring congestion on a running course. The application shall load a GPX course and an HTML results table, infer each participant's course position from finish time using a constant-pace model, and animate participant locations over the course. The application shall include the supplied Riverbank parkrun example and shall support replacement with local GPX and HTML results files.
+The Course Density Visualization Tool is a static browser application for exploring congestion on a running course. The application shall load a GPX course and an HTML results table, infer each participant's course position from finish time using a constant-pace model, and animate participant locations over the course. The application shall include the supplied 62 people example and shall support replacement with local GPX and HTML results files.
 
 ## Glossary
 
@@ -49,7 +49,7 @@ The Course Density Visualization Tool is a static browser application for explor
 
 #### Acceptance Criteria
 
-1. WHEN the Static Visualization Tool first opens, THE Static Visualization Tool SHALL load the supplied `Cricket_Captains_Walk_parkrun.gpx` file and `results _ Riverbank parkrun.html` file as the built-in example.
+1. WHEN the Static Visualization Tool first opens, THE Static Visualization Tool SHALL load the supplied `Example_parkrun.gpx` file and `results _ 62 people.html` file as the built-in example.
 2. WHEN a user selects a local GPX file, THE Static Visualization Tool SHALL send the selected file to the GPX Parser and replace the current Course Track after successful parsing.
 3. WHEN a user selects a local HTML file, THE Static Visualization Tool SHALL send the selected file to the Results Parser and replace the current Participant Records after successful parsing.
 4. WHEN the GPX Parser receives a GPX document, THE GPX Parser SHALL extract numeric latitude and longitude values from each `<trkpt>` element within each `<trkseg>` element in document order.

@@ -8,7 +8,7 @@ import { parseResults } from './resultsParser';
 
 const examplePath = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  '../../public/examples/results _ Riverbank parkrun.html',
+  '../../public/examples/results _ 62 people.html',
 );
 const riverbankHtml = readFileSync(examplePath, 'utf8');
 const originalDomParser = globalThis.DOMParser;
@@ -36,7 +36,7 @@ describe('parseResults examples and edge cases', () => {
 
     expect(result.value.length).toBeGreaterThan(0);
     expect(result.value[0]).toMatchObject({
-      displayName: 'Josiah BARBER',
+      displayName: 'Participant One',
       finishDurationSeconds: 20 * 60 + 33,
     });
     expect(result.validation.excludedRows).toBeGreaterThan(0);

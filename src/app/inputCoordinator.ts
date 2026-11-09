@@ -43,8 +43,8 @@ export type BootstrapResult = {
 };
 
 export const DEFAULT_EXAMPLE_PATHS: ExamplePaths = Object.freeze({
-  course: './examples/Cricket_Captains_Walk_parkrun.gpx',
-  results: './examples/results%20_%20Riverbank%20parkrun.html',
+  course: './examples/Example_parkrun.gpx',
+  results: './examples/results%20_%2062%20people.html',
 });
 
 const COURSE_FILE_ACCEPTED_TYPE = 'GPX files (.gpx)';

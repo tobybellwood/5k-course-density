@@ -6,7 +6,7 @@ The app loads a GPX course and an HTML results page, models each participant at 
 
 ## Features
 
-- Bundled Riverbank parkrun example data.
+- Bundled 62 people parkrun example data.
 - Local GPX and HTML results-file replacement.
 - 60 simulated seconds per real-time second during playback.
 - Route-distance interpolation for participant positions.

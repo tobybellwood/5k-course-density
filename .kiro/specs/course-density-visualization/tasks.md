@@ -55,7 +55,7 @@ Build the static Vite/TypeScript browser application described in the design. Th
     - _Requirements: 1.6, 2.4, 2.6, 2.7_
 
 - [x] 4. Implement results parsing and participant normalization
-  - [x] 4.1 Implement the results parser for the saved Riverbank table and fallback ordinary tables.
+  - [x] 4.1 Implement the results parser for the saved 62 people table and fallback ordinary tables.
     - Prefer `.Results-table-row`, compact name, and event-time cells; map ordinary table headers containing name/parkrunner and time/finish.
     - Ignore scripts, styles, links, images, and detailed PB values that are not the event finish time.
     - _Requirements: 1.7, 2.1_
@@ -71,7 +71,7 @@ Build the static Vite/TypeScript browser application described in the design. Th
     - **Property 11: Validation summaries aggregate excluded-row reasons**
     - **Validates: Requirements 5.3**
     - Generate invalid names and duration categories and assert no invalid participant is emitted and every category count is exact.
-  - [x] 4.5 Write example tests for the supplied Riverbank HTML, compact event-time selection, duplicate names, header-only tables, empty tables, and all-invalid files.
+  - [x] 4.5 Write example tests for the supplied 62 people HTML, compact event-time selection, duplicate names, header-only tables, empty tables, and all-invalid files.
     - _Requirements: 1.7, 1.8, 2.2_
 
 - [x] 5. Implement pure simulation and density domain services

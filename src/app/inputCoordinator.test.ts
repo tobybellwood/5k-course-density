@@ -101,8 +101,8 @@ describe('InputCoordinator', () => {
 
   it('exposes the documented default example paths', () => {
     expect(getExamplePaths()).toEqual({
-      course: './examples/Cricket_Captains_Walk_parkrun.gpx',
-      results: './examples/results%20_%20Riverbank%20parkrun.html',
+      course: './examples/Example_parkrun.gpx',
+      results: './examples/results%20_%2062%20people.html',
     });
   });
 });
