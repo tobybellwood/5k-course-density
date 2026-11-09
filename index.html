@@ -39,7 +39,7 @@
                 accept=".gpx,application/gpx+xml,application/xml,text/xml"
                 aria-describedby="course-file-hint"
               />
-              <span id="course-file-hint">Upload any GPX file for a parkrun course.</span>
+              <span id="course-file-hint">Upload any GPX file for a course you want to plot.</span>
             </div>
             <div class="file-control">
               <label for="results-file-input">HTML results file</label>
@@ -50,12 +50,24 @@
                 accept=".html,.htm,text/html"
                 aria-describedby="results-file-hint"
               />
-              <span id="results-file-hint">Right-click “Save as HTML” on any event results page.</span>
+              <span id="results-file-hint">Right-click “Save as HTML” on any parkrun event results page.</span>
             </div>
           </div>
-          <button id="reset-example-button" type="button">
-            Reset to bundled example
-          </button>
+          <div class="bundled-example-controls">
+            <div class="bundled-example-select-control">
+              <label for="bundled-example-select">Bundled results example</label>
+              <select id="bundled-example-select" name="bundled-example" aria-describedby="bundled-example-hint">
+                <option value="./examples/results%20_%2062%20people.html" selected>62 people</option>
+                <option value="./examples/results%20_%20411%20people.html">411 people</option>
+              </select>
+              <span id="bundled-example-hint" class="control-hint">
+                Choose the results set to load when resetting the bundled example.
+              </span>
+            </div>
+            <button id="reset-example-button" type="button">
+              Reset to bundled example
+            </button>
+          </div>
         </section>
 
         <section id="status-panel" class="panel" aria-labelledby="status-heading">
