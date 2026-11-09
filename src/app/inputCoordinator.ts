@@ -42,9 +42,14 @@ export type BootstrapResult = {
   readonly state: ApplicationState;
 };
 
+export const BUNDLED_EXAMPLE_RESULTS = Object.freeze({
+  62: './examples/results%20_%2062%20people.html',
+  411: './examples/results%20_%20411%20people.html',
+});
+
 export const DEFAULT_EXAMPLE_PATHS: ExamplePaths = Object.freeze({
   course: './examples/Example_parkrun.gpx',
-  results: './examples/results%20_%2062%20people.html',
+  results: BUNDLED_EXAMPLE_RESULTS[62],
 });
 
 const COURSE_FILE_ACCEPTED_TYPE = 'GPX files (.gpx)';

@@ -145,11 +145,16 @@ export async function bootstrapApplication(
         domView.renderNotice(`The results file could not be loaded. ${errorMessage(error, 'Unknown file error.')}`);
       }
     },
-    onResetExample: async () => {
+    onResetExample: async (resultsPath) => {
       try {
         renderState(appController.state);
         domView.renderNotice('Loading the bundled course and results example…');
-        await inputCoordinator.resetToExample(root);
+        await inputCoordinator.resetToExample({
+          dataset: {
+            exampleCourse: root.dataset.exampleCourse,
+            exampleResults: resultsPath,
+          },
+        });
         renderState(appController.state);
       } catch (error) {
         renderState(appController.state);

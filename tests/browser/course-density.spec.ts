@@ -39,6 +39,8 @@ const invalidResults = '<!doctype html><table><tr><th>Name</th><th>Time</th></tr
 async function loadBundledExample(page: Page): Promise<void> {
   await page.goto('/', { waitUntil: 'networkidle' });
   await expect(page.locator('#reset-example-button')).toBeEnabled();
+  await expect(page.getByLabel('Bundled results example')).toHaveValue('./examples/results%20_%2062%20people.html');
+  await expect(page.getByLabel('Bundled results example').locator('option')).toHaveText(['62 people', '411 people']);
   await expect(page.locator('#start-playback-button')).toBeEnabled({ timeout: 15_000 });
   await expect(page.locator('#participant-count')).not.toHaveText('0');
   await expect(page.locator('#total-duration')).not.toHaveText('0:00');
@@ -102,6 +104,22 @@ test.describe('built static course density application', () => {
     await expect(page.locator('#playback-state')).toHaveText('Paused');
     await expect(page.locator('#simulation-time')).toHaveText('0:00');
 
+    await page.getByLabel('Bundled results example').selectOption('./examples/results%20_%20411%20people.html');
+    await page.getByLabel('Grid size').selectOption('50');
+    await page.getByLabel('Minimum people per circle').fill('2');
+    await page.getByLabel('Warning colour threshold').selectOption('5');
+    await page.locator('#markers-layer-toggle').uncheck();
+    await page.locator('#density-layer-toggle').uncheck();
+    await page.getByRole('switch', { name: 'Show finisher numbers' }).check();
+    await page.locator('#reset-example-button').click();
+    await expect(page.locator('#participant-count')).toHaveText('378');
+    await expect(page.locator('#density-settings-summary')).toHaveText('50 m grid · minimum 2');
+    await expect(page.locator('#density-warning-state')).toHaveText('5 people');
+    await expect(page.locator('#markers-layer-toggle')).not.toBeChecked();
+    await expect(page.locator('#density-layer-toggle')).not.toBeChecked();
+    await expect(page.getByRole('switch', { name: 'Show finisher numbers' })).toBeChecked();
+
+    await page.getByLabel('Bundled results example').selectOption('./examples/results%20_%2062%20people.html');
     await page.locator('#reset-example-button').click();
     await expect(page.locator('#participant-count')).toHaveText(bundledParticipantCount ?? '');
     await expect(page.locator('#total-duration')).not.toHaveText('1:23');

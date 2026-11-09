@@ -13,7 +13,7 @@ export type DomViewHandlers = {
   readonly onStartPlayback?: () => void;
   readonly onPausePlayback?: () => void;
   readonly onResetPlayback?: () => void;
-  readonly onResetExample?: () => void | Promise<void>;
+  readonly onResetExample?: (resultsPath: string) => void | Promise<void>;
   readonly onMarkersVisibilityChange?: (visible: boolean) => void;
   readonly onDensityVisibilityChange?: (visible: boolean) => void;
   readonly onShowFinisherNumbersChange?: (visible: boolean) => void;
@@ -31,6 +31,7 @@ export type DomViewOptions = {
 export type DomViewElements = {
   readonly courseFileInput: HTMLInputElement;
   readonly resultsFileInput: HTMLInputElement;
+  readonly bundledExampleSelect: HTMLSelectElement;
   readonly resetExampleButton: HTMLButtonElement;
   readonly startPlaybackButton: HTMLButtonElement;
   readonly pausePlaybackButton: HTMLButtonElement;
@@ -98,6 +99,7 @@ function collectElements(root: ParentNode): DomViewElements {
   return {
     courseFileInput: requireElement<HTMLInputElement>(root, '#course-file-input'),
     resultsFileInput: requireElement<HTMLInputElement>(root, '#results-file-input'),
+    bundledExampleSelect: requireElement<HTMLSelectElement>(root, '#bundled-example-select'),
     resetExampleButton: requireElement<HTMLButtonElement>(root, '#reset-example-button'),
     startPlaybackButton: requireElement<HTMLButtonElement>(root, '#start-playback-button'),
     pausePlaybackButton: requireElement<HTMLButtonElement>(root, '#pause-playback-button'),
@@ -191,6 +193,7 @@ export class DomView {
     const {
       courseFileInput,
       resultsFileInput,
+      bundledExampleSelect,
       resetExampleButton,
       startPlaybackButton,
       pausePlaybackButton,
@@ -219,7 +222,7 @@ export class DomView {
     this.listen(pausePlaybackButton, 'click', () => this.handlers.onPausePlayback?.());
     this.listen(resetPlaybackButton, 'click', () => this.handlers.onResetPlayback?.());
     this.listen(resetExampleButton, 'click', () => {
-      void this.handlers.onResetExample?.();
+      void this.handlers.onResetExample?.(bundledExampleSelect.value);
     });
     this.listen(markersLayerToggle, 'change', () => {
       (this.handlers.onMarkersVisibilityChanged ?? this.handlers.onMarkersVisibilityChange)?.(markersLayerToggle.checked);

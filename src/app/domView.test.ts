@@ -13,6 +13,8 @@ function installMarkup(): void {
     <input id="course-file-input" type="file">
     <input id="results-file-input" type="file">
     <button id="reset-example-button"></button>
+    <label for="bundled-example-select">Bundled results example</label>
+    <select id="bundled-example-select"><option value="./examples/results%20_%2062%20people.html">62 people</option><option value="./examples/results%20_%20411%20people.html">411 people</option></select>
     <button id="start-playback-button"></button>
     <button id="pause-playback-button"></button>
     <button id="reset-playback-button"></button>
@@ -131,6 +133,8 @@ describe('DomView', () => {
     document.querySelector('#start-playback-button')?.dispatchEvent(new Event('click'));
     document.querySelector('#pause-playback-button')?.dispatchEvent(new Event('click'));
     document.querySelector('#reset-playback-button')?.dispatchEvent(new Event('click'));
+    const bundledExample = document.querySelector('#bundled-example-select') as HTMLSelectElement;
+    bundledExample.value = './examples/results%20_%20411%20people.html';
     document.querySelector('#reset-example-button')?.dispatchEvent(new Event('click'));
     const markers = document.querySelector('#markers-layer-toggle') as HTMLInputElement;
     const density = document.querySelector('#density-layer-toggle') as HTMLInputElement;
@@ -156,7 +160,7 @@ describe('DomView', () => {
     expect(callbacks.onStartPlayback).toHaveBeenCalledOnce();
     expect(callbacks.onPausePlayback).toHaveBeenCalledOnce();
     expect(callbacks.onResetPlayback).toHaveBeenCalledOnce();
-    expect(callbacks.onResetExample).toHaveBeenCalledOnce();
+    expect(callbacks.onResetExample).toHaveBeenCalledWith('./examples/results%20_%20411%20people.html');
     expect(callbacks.onMarkersVisibilityChange).toHaveBeenCalledWith(false);
     expect(callbacks.onDensityVisibilityChange).toHaveBeenCalledWith(false);
     expect(callbacks.onShowFinisherNumbersChange).toHaveBeenCalledWith(true);

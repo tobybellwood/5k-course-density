@@ -105,4 +105,32 @@ describe('InputCoordinator', () => {
       results: './examples/results%20_%2062%20people.html',
     });
   });
+
+  it('uses the selected bundled results path with the shared course', async () => {
+    const requested: string[] = [];
+    const controller = new AppController();
+    const coordinator = new InputCoordinator({
+      controller,
+      fetcher: async (url) => {
+        requested.push(String(url));
+        return response(String(url).includes('411') ? resultsHtml : courseXml);
+      },
+    });
+
+    const result = await coordinator.resetToExample({
+      dataset: {
+        exampleCourse: './examples/Example_parkrun.gpx',
+        exampleResults: './examples/results%20_%20411%20people.html',
+      },
+    });
+
+    expect(result.course.ok).toBe(true);
+    expect(result.results.ok).toBe(true);
+    expect(controller.state.participants).toHaveLength(1);
+    expect(requested).toEqual([
+      './examples/Example_parkrun.gpx',
+      './examples/results%20_%20411%20people.html',
+    ]);
+    expect(coordinator.bundledPaths.results).toContain('411');
+  });
 });
