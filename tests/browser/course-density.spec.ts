@@ -49,6 +49,12 @@ test.describe('built static course density application', () => {
     await loadBundledExample(page);
 
     await expect(page.locator('#map')).toBeVisible();
+    const scaleControl = page.locator('#map .leaflet-control-scale');
+    await expect(scaleControl).toHaveCount(1);
+    await expect(scaleControl.locator('.leaflet-control-scale-line')).toHaveCount(1);
+    await expect(scaleControl).toContainText(/(?:m|km)/);
+    await expect(scaleControl).not.toContainText(/(?:ft|mi)/i);
+    await expect(page.locator('#map .leaflet-bottom.leaflet-left .leaflet-control-scale')).toHaveCount(1);
     await expect(page.locator('#map .leaflet-overlay-pane path')).not.toHaveCount(0);
     await expect(page.locator('#map .leaflet-marker-icon').first()).toBeVisible();
     await expect(page.locator('#map .leaflet-marker-icon').first()).toHaveAttribute(

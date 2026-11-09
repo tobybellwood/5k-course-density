@@ -5,14 +5,29 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const leafletState = vi.hoisted(() => {
   class MockMap {
     public readonly layers = new Set<unknown>();
+    public readonly controls = new Set<unknown>();
 
     public addLayer(layer: unknown): this {
       this.layers.add(layer);
       return this;
     }
 
+    public addControl(control: unknown): this {
+      this.controls.add(control);
+      return this;
+    }
+
     public removeLayer(layer: unknown): this {
       this.layers.delete(layer);
+      return this;
+    }
+  }
+
+  class MockScaleControl {
+    public constructor(public readonly options: Record<string, unknown>) {}
+
+    public addTo(map: MockMap): this {
+      map.addControl(this);
       return this;
     }
   }
@@ -63,13 +78,18 @@ const leafletState = vi.hoisted(() => {
     public constructor(public readonly options: Record<string, unknown>) {}
   }
 
-  return { MockCircle, MockDefaultIcon, MockLayerGroup, MockMap, MockMarker };
+  return { MockCircle, MockDefaultIcon, MockLayerGroup, MockMap, MockMarker, MockScaleControl };
 });
 
 vi.mock('leaflet', () => ({
   circle: vi.fn((coordinate: readonly [number, number], options: Record<string, unknown>) => (
     new leafletState.MockCircle(coordinate, options)
   )),
+  control: {
+    scale: vi.fn((options: Record<string, unknown>) => (
+      new leafletState.MockScaleControl(options)
+    )),
+  },
   Icon: {
     Default: leafletState.MockDefaultIcon,
   },

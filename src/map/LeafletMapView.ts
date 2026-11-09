@@ -215,6 +215,11 @@ export class LeafletMapView {
       ...DEFAULT_MAP_OPTIONS,
       ...options.mapOptions,
     });
+    L.control.scale({
+      position: 'bottomleft',
+      metric: true,
+      imperial: false,
+    }).addTo(this.map);
     this.onBasemapError = options.onBasemapError;
     this.densitySettings = options.densitySettings ?? {
       gridSizeMeters: (options.densityGridSizeMeters ?? DEFAULT_DENSITY_GRID_SIZE_METERS) as DensitySettings['gridSizeMeters'],

@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const leafletState = vi.hoisted(() => {
   class MockMap {
     public readonly layers = new Set<unknown>();
+    public readonly controls: unknown[] = [];
     public readonly fitBounds = vi.fn();
     public readonly remove = vi.fn();
     public readonly attributionControl = {
@@ -17,8 +18,22 @@ const leafletState = vi.hoisted(() => {
       return this;
     }
 
+    public addControl(control: unknown): this {
+      this.controls.push(control);
+      return this;
+    }
+
     public removeLayer(layer: unknown): this {
       this.layers.delete(layer);
+      return this;
+    }
+  }
+
+  class MockScaleControl {
+    public constructor(public readonly options: Record<string, unknown>) {}
+
+    public addTo(map: MockMap): this {
+      map.addControl(this);
       return this;
     }
   }
@@ -112,6 +127,7 @@ const leafletState = vi.hoisted(() => {
     MockLayerGroup,
     MockMap,
     MockMarker,
+    MockScaleControl,
     MockTileLayer,
     bounds,
     layerGroups,
@@ -174,6 +190,11 @@ vi.mock('leaflet', () => ({
     const circle = new leafletState.MockCircle(coordinate, options);
     return circle;
   }),
+  control: {
+    scale: vi.fn((options: Record<string, unknown>) => (
+      new leafletState.MockScaleControl(options)
+    )),
+  },
   divIcon: vi.fn((options: Record<string, unknown>) => (
     new leafletState.MockDivIcon(options)
   )),
@@ -296,6 +317,13 @@ describe('LeafletMapView', () => {
     });
     expect(map.attributionControl.addAttribution).toHaveBeenCalledWith(OPENFREEMAP_ATTRIBUTION);
     expect(map.attributionControl.addAttribution).toHaveBeenCalledWith(OPENSTREETMAP_ATTRIBUTION);
+    expect(map.controls).toHaveLength(1);
+    expect(map.controls[0]).toBeInstanceOf(leafletState.MockScaleControl);
+    expect((map.controls[0] as InstanceType<typeof leafletState.MockScaleControl>).options).toEqual({
+      position: 'bottomleft',
+      metric: true,
+      imperial: false,
+    });
     expect([...map.layers]).toEqual([
       view.basemapLayerGroup,
       view.routeLayerGroup,
