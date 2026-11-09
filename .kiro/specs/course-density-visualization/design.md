@@ -20,6 +20,7 @@ The design keeps all domain calculations independent of the map and DOM. This ma
 - Keep density settings in the current browser session only and preserve the existing visualization defaults.
 - Provide a default-off `Show finisher numbers` presentation switch that can replace marker icons with stable competition ranks.
 - Keep parsing and simulation usable in tests without Leaflet or browser timing APIs.
+- Provide a full-HD desktop composition that uses the full viewport, dedicates an approximately 20% left control rail to the application controls and status content, and gives the remaining approximately 80% to the map.
 
 ### Non-goals
 
@@ -30,7 +31,7 @@ The design keeps all domain calculations independent of the map and DOM. This ma
 
 ## Technology and Project Structure
 
-Use TypeScript compiled by Vite into static browser assets. Use Leaflet for the geographic viewport and vector layers. Use the browser `DOMParser`, `File.text()`, `requestAnimationFrame`, and standard DOM events. Use CSS for the responsive two-column layout and status/control styling.
+Use TypeScript compiled by Vite into static browser assets. Use Leaflet for the geographic viewport and vector layers. Use the browser `DOMParser`, `File.text()`, `requestAnimationFrame`, and standard DOM events. Use CSS for the responsive two-column layout, the full-height desktop control rail and map split, and status/control styling.
 
 Suggested structure:
 
@@ -192,6 +193,8 @@ Density settings are initialized to a 25-meter Grid Size, a Minimum People-per-C
 - Keeps the finisher-number switch default-off on initialization, does not persist it across browser sessions, and keeps its label and status readable at narrow widths.
 - Disables start/pause/reset playback controls when required input is missing; reset-to-example remains available.
 - Never builds user-provided names through `innerHTML`; popup, status, and marker-icon values are escaped or assigned through text nodes. Numeric finisher ranks are generated values and are rendered as text rather than markup.
+- Keeps the page-level layout semantic and stable: a desktop `control-rail` contains the header and all controls/status/notices, while a sibling `map-region` contains the viewing surface. Layout changes remain CSS/view concerns and do not mutate application state.
+- Preserves explicit labels, keyboard operation, visible focus styles, and live-region semantics when the control rail becomes vertically scrollable or the layout switches to the narrow stacked arrangement.
 
 ## Data Models
 
@@ -404,6 +407,7 @@ Publish one snapshot after each update. The controller stops at the terminal tim
 - Reject unsupported density grid sizes, non-integer minimum filters, non-integer warning thresholds, and warning thresholds less than or equal to the active minimum. Keep the previous valid setting and explain the accepted range or relationship in the notice.
 - Treat a disabled warning threshold as a valid explicit state. If session storage is unavailable or contains invalid density settings, use the documented defaults and display a non-blocking notice.
 - Keep density controls usable at narrow widths; validation notices and legend text must remain readable without obscuring playback controls or the map.
+- Treat desktop layout or map-sizing failures as view notices only: leave parser and status output available, preserve valid application state, and keep the narrow stacked fallback usable.
 
 ## UI and Interaction Details
 
@@ -421,6 +425,14 @@ The page has a header, a control/status panel, and a map region. The control pan
 - Validation summary and an `aria-live` notice region.
 
 The map always shows the route when a valid course exists. Markers and density are both visible by default when valid participants exist. A selected marker popup reads from its own participant record and the current snapshot time, so it remains accurate after playback updates.
+
+### Full-HD desktop layout
+
+At the full-HD desktop breakpoint, the page uses the full viewport height rather than a centered, page-width-constrained canvas. The semantic layout has two siblings: a left `control-rail` and a right `map-region`. The control rail is approximately 20% of the viewport width and contains the header, file inputs, playback controls, status, visualization-layer controls, density settings and legend, and validation notices. The rail has a bounded height of the viewport and `overflow-y: auto`, so all controls remain reachable when their content exceeds the available height.
+
+The map region occupies the remaining approximately 80% of the viewport width and the full available height. It has no unnecessary page-level `max-width`; the map element stretches to the region's width and height, and the Leaflet view is invalidated or resized after the final layout dimensions are established. The desktop composition must avoid horizontal overflow, overlap, clipping, and obscuring between the rail and map. Existing labels, keyboard behavior, visible focus states, and `aria-live` status and notice regions remain unchanged.
+
+Below the desktop breakpoint, the page switches to the existing stacked arrangement with controls above the map. The stacked layout remains usable without horizontal overflow, keeps the map at a positive readable size, and does not change simulation time, playback state, participant positions, density output, or active control values when the viewport crosses the breakpoint.
 
 ## Testing Strategy
 
@@ -448,6 +460,12 @@ Cover:
 - Playback time, playback state, and participant positions remain unchanged when density settings change while paused or running.
 - The finisher-number switch has an accessible label and keyboard behavior, is off by default, preserves playback while toggled on and off, keeps popup content and safe participant-name rendering intact, retains longest-finisher styling, and remains usable at a narrow viewport.
 - Density controls, status text, legend labels, keyboard access, narrow layouts, and browser-session behavior are covered by browser integration tests.
+
+### Layout and browser integration tests
+
+Use deterministic browser viewport tests for the view-level layout because geometry depends on the rendered browser environment rather than domain inputs. At 1920 by 1080, verify that the application uses the full viewport height, the control rail is approximately 20% wide, the map region occupies the remaining approximately 80%, and the map has positive dimensions that fill the available right-hand area. Verify that the header, controls, playback controls, status, notices, density controls, and legend are visible or reachable within the vertically scrollable rail, that rail scrolling does not hide required content, and that the map and rail do not overlap, clip, or produce horizontal overflow. Verify accessible labels, focus visibility, keyboard operation, and live-region semantics in the desktop arrangement.
+
+Resize or open the application below the desktop breakpoint and verify the existing stacked layout places controls above a usable map, preserves readable labels and focus states, has no horizontal overflow or clipped controls, and preserves simulation and control state across the layout change. These tests should exercise the built static app and should not require a new domain property.
 
 ### Property tests
 
@@ -618,5 +636,5 @@ This split prevents external map behavior and one-time configuration checks from
 4. Implement application state transitions and transactional replacement handling.
 5. Add Leaflet map creation, route fitting, marker popups, default and finisher-number marker icons, density circles, and layer toggles.
 6. Add playback controller and connect its snapshot stream to the map and status view.
-7. Add responsive styles, accessible labels, the default-off finisher-number switch, notices, and example reset behavior.
-8. Run unit/property tests, then browser integration tests against the built static app.
+7. Add the full-height desktop control rail and map composition, responsive styles, accessible labels, the default-off finisher-number switch, notices, and example reset behavior.
+8. Run unit/property tests, then browser integration tests against the built static app, including deterministic full-HD geometry and narrow-viewport layout regression checks.

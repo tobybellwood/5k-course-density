@@ -38,6 +38,35 @@ export async function bootstrapApplication(
     mapNotice = `The map could not be initialized. Parser and playback status remain available. ${errorMessage(error, 'Unknown map initialization error.')}`;
   }
 
+  let mapResizeFrame: number | null = null;
+  const scheduleMapResize = (): void => {
+    if (mapView === null) {
+      return;
+    }
+
+    const resize = (): void => {
+      mapResizeFrame = null;
+      mapView?.map.invalidateSize({ pan: false });
+    };
+
+    if (typeof globalThis.requestAnimationFrame === 'function') {
+      if (mapResizeFrame !== null && typeof globalThis.cancelAnimationFrame === 'function') {
+        globalThis.cancelAnimationFrame(mapResizeFrame);
+      }
+      mapResizeFrame = globalThis.requestAnimationFrame(resize);
+      return;
+    }
+
+    resize();
+  };
+
+  const mapRegion = document.getElementById('map-region');
+  const mapResizeObserver = mapRegion !== null && typeof ResizeObserver === 'function'
+    ? new ResizeObserver(scheduleMapResize)
+    : null;
+  mapResizeObserver?.observe(mapRegion as HTMLElement);
+  document.defaultView?.addEventListener('resize', scheduleMapResize);
+
   const renderState = (state: ApplicationState): void => {
     domView.render(state);
 
@@ -88,6 +117,7 @@ export async function bootstrapApplication(
 
   appController.subscribe(renderState);
   renderState(appController.state);
+  scheduleMapResize();
 
   const playbackController = new PlaybackController(appController);
   domView.bind({

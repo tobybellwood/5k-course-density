@@ -275,6 +275,32 @@ Build the static Vite/TypeScript browser application described in the design. Th
   - Run the focused unit, property, mocked-map, and browser integration suites for finisher-number presentation behavior.
   - Ensure all tests pass, ask the user if questions arise.
 
+- [ ] 17. Implement the full-HD desktop layout and UI composition
+  - [ ] 17.1 Add semantic layout hooks for the desktop control rail and right-hand map/viewing region.
+    - Keep the header, input controls, playback controls, status, density controls, notices, and density legend grouped in the left rail without changing their accessible labels, focus behavior, or live-region semantics.
+    - Keep the map region as a distinct sibling viewing area.
+    - _Requirements: 9.1, 9.2, 9.6_
+  - [ ] 17.2 Add full-viewport desktop layout styling and preserve the responsive fallback.
+    - At the full-HD desktop breakpoint, use the full viewport height, allocate approximately 20 percent width to the vertically scrollable control rail, and let the map fill the remaining approximately 80 percent without an unnecessary page max-width.
+    - Preserve the existing stacked narrow-viewport layout, readable controls, visible focus states, and no-horizontal-overflow behavior.
+    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
+  - [ ] 17.3 Ensure map sizing follows the final desktop layout dimensions.
+    - Invalidate or recalculate the Leaflet map size after the desktop rail and map region have their final dimensions, without changing simulation or layer state.
+    - _Requirements: 9.3, 9.8_
+
+- [ ] 18. Test the full-HD desktop layout and responsive regressions
+  - [ ] 18.1 Add browser integration coverage at a 1920 by 1080 viewport.
+    - Verify the full-height composition, approximately 20/80 control-rail and map geometry, map fill of the available right-hand area, visible controls/status/notices/density content, vertical rail scrolling when needed, no horizontal overflow, and no overlap or clipping.
+    - Verify accessible labels and visible focus states remain available in the desktop arrangement.
+    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
+  - [ ] 18.2 Add narrow-viewport regression coverage below the desktop breakpoint.
+    - Verify the layout stacks controls above the map, remains usable without horizontal overflow or clipping, and preserves simulation and control state when the viewport changes.
+    - _Requirements: 9.7, 9.8_
+
+- [ ] 19. Checkpoint - Ensure all full-HD layout tests pass
+  - Run the focused browser integration tests for full-HD geometry, map fill, control-rail scrolling and visibility, no horizontal overflow, and narrow-viewport fallback.
+  - Ensure all tests pass, ask the user if questions arise.
+
 ## Notes
 
 - Tasks marked with `*` are optional test tasks and may be skipped for a faster MVP, but they document the required validation coverage.
@@ -287,6 +313,7 @@ Build the static Vite/TypeScript browser application described in the design. Th
 - Finisher-number tests cover unique and tied rankings, default and enabled icons, longest-finisher precedence, playback preservation, popup and safe-text behavior, snapshot rerenders, keyboard access, status text, and narrow layouts.
 - Browser tests use a fresh browser context when verifying that settings do not persist across visits.
 - Browser integration tests cover Leaflet, file inputs, playback controls, and static-app behavior that pure domain tests cannot cover.
+- Full-HD layout tests use a deterministic 1920 by 1080 viewport to verify the approximately 20/80 control-rail and map geometry, map fill, rail scrolling and visibility, no horizontal overflow, accessible focus behavior, and narrow-viewport fallback. Layout work remains a view-level concern and must preserve simulation state; the layout checkpoint is validation-only and is excluded from the dependency graph.
 - Checkpoint tasks are validation points only and are not included in the dependency graph.
 
 ## Task Dependency Graph
@@ -314,7 +341,11 @@ Build the static Vite/TypeScript browser application described in the design. Th
     { "id": 17, "tasks": ["14.1"] },
     { "id": 18, "tasks": ["14.2", "14.3"] },
     { "id": 19, "tasks": ["15.1", "15.2", "15.3"] },
-    { "id": 20, "tasks": ["16"] }
+    { "id": 20, "tasks": ["16"] },
+    { "id": 21, "tasks": ["17.1"] },
+    { "id": 22, "tasks": ["17.2"] },
+    { "id": 23, "tasks": ["17.3"] },
+    { "id": 24, "tasks": ["18.1", "18.2"] }
   ]
 }
 ```

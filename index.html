@@ -17,16 +17,17 @@
       data-example-course="./examples/Cricket_Captains_Walk_parkrun.gpx"
       data-example-results="./examples/results%20_%20Riverbank%20parkrun.html"
     >
-      <header class="app-header">
-        <h1>Course Density Visualization</h1>
-        <p>
-          Replay participant movement along a course using finish times from a
-          results page.
-        </p>
-      </header>
-
       <main class="app-main">
-        <section id="input-controls" class="panel" aria-labelledby="input-heading">
+        <aside class="control-rail" aria-label="Course density controls">
+          <header class="app-header">
+            <h1>Course Density Visualization</h1>
+            <p>
+              Replay participant movement along a course using finish times from a
+              results page.
+            </p>
+          </header>
+
+          <section id="input-controls" class="panel" aria-labelledby="input-heading">
           <h2 id="input-heading">Input files</h2>
           <div class="file-controls">
             <div class="file-control">
@@ -233,6 +234,8 @@
             Loading the bundled course and results example…
           </div>
         </section>
+
+        </aside>
 
         <section id="map-region" class="map-region" aria-labelledby="map-heading">
           <h2 id="map-heading">Course map</h2>

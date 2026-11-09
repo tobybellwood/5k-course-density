@@ -158,3 +158,18 @@ The Course Density Visualization Tool is a static browser application for explor
 9. WHEN the viewport is narrow, THE Show Finisher Numbers Switch, its label, status text, and the map SHALL remain readable and usable without clipping or obscuring playback or density controls.
 10. WHEN the Static Visualization Tool renders a finisher-number icon, THE Static Visualization Tool SHALL render the numeric Finisher Rank through safe text rendering and SHALL continue to render participant popup names through safe text APIs without inserting user-provided text as markup.
 11. WHEN the Static Visualization Tool rerenders markers for a later SimulationSnapshot with the same Participant Records, THE Static Visualization Tool SHALL preserve each participant's Finisher Rank and switch state while updating only the fields affected by the new snapshot.
+
+### Requirement 9: Provide a full-HD desktop layout
+
+**User Story:** As a race analyst using a desktop display, I want the controls and map arranged across the full viewport, so that I can operate the visualization without wasting screen space or obscuring the course view.
+
+#### Acceptance Criteria
+
+1. WHEN the Static Visualization Tool is displayed at a 1920 by 1080 viewport, THE Static Visualization Tool SHALL use the full available viewport height for the application layout.
+2. WHEN the Static Visualization Tool is displayed at the full-HD desktop breakpoint, THE Static Visualization Tool SHALL place the header, input controls, playback controls, status, density controls, notices, and density legend in a fixed left control rail approximately 20 percent of the viewport width.
+3. WHEN the Static Visualization Tool is displayed at the full-HD desktop breakpoint, THE map or viewing region SHALL occupy the remaining approximately 80 percent of the viewport width and SHALL fill the available right-hand height and width without an unnecessary page-level max-width constraint.
+4. IF the contents of the left control rail exceed the available viewport height, THEN THE Static Visualization Tool SHALL allow the control rail to scroll vertically while keeping the map or viewing region visible.
+5. WHEN the Static Visualization Tool is displayed at the full-HD desktop breakpoint, THE Static Visualization Tool SHALL keep controls, status, notices, density controls, the density legend, and the map readable without horizontal overflow, overlap, clipping, or one region obscuring another.
+6. WHEN the Static Visualization Tool displays the full-HD desktop layout, THE Static Visualization Tool SHALL preserve accessible labels, keyboard operation, visible focus states, and status or notice semantics for every control and live region.
+7. WHEN the viewport is narrower than the desktop breakpoint, THE Static Visualization Tool SHALL switch to the existing responsive stacked layout, keep the map usable below the controls, and SHALL NOT introduce horizontal overflow or clipped controls.
+8. WHEN the Static Visualization Tool changes between the desktop and narrow responsive layouts, THE Static Visualization Tool SHALL preserve the current Simulation Time, Playback State, Participant Positions, Density Layer output, and active control values.
