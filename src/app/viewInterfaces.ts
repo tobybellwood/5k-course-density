@@ -24,6 +24,7 @@ export type PlaybackControlState = Readonly<{
 export type PlaybackStatusViewModel = Readonly<{
   simulationTimeSeconds: number;
   totalDurationSeconds: number;
+  courseLengthMeters: number | null;
   playback: ApplicationState['playback'];
   participantCount: number;
   excludedRowCount: number;

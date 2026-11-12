@@ -362,6 +362,7 @@ export class AppController {
     return {
       simulationTimeSeconds: state.simulationTimeSeconds,
       totalDurationSeconds: state.totalDurationSeconds,
+      courseLengthMeters: state.course?.totalDistanceMeters ?? null,
       playback: state.playback,
       participantCount: state.participants.length,
       excludedRowCount: state.validation.excludedRows,

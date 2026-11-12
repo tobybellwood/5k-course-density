@@ -49,8 +49,9 @@ export type DomViewElements = {
   readonly densityWarningLegend: HTMLElement;
   readonly densityFilterLegend: HTMLElement;
   readonly status: HTMLElement;
-  readonly simulationTime: HTMLElement;
+  simulationTime: HTMLElement;
   readonly totalDuration: HTMLElement;
+  readonly courseLength: HTMLElement;
   readonly playbackState: HTMLElement;
   readonly participantCount: HTMLElement;
   readonly excludedRowCount: HTMLElement;
@@ -119,6 +120,7 @@ function collectElements(root: ParentNode): DomViewElements {
     status: requireElement<HTMLElement>(root, '#status'),
     simulationTime: requireElement<HTMLElement>(root, '#simulation-time'),
     totalDuration: requireElement<HTMLElement>(root, '#total-duration'),
+    courseLength: requireElement<HTMLElement>(root, '#course-length'),
     playbackState: requireElement<HTMLElement>(root, '#playback-state'),
     participantCount: requireElement<HTMLElement>(root, '#participant-count'),
     excludedRowCount: requireElement<HTMLElement>(root, '#excluded-row-count'),
@@ -153,6 +155,20 @@ export function formatSimulationDuration(seconds: number): string {
   }
   return `${minutes}:${paddedSeconds}`;
 }
+
+export function formatCourseDistance(meters: number | null): string {
+  if (meters === null || !Number.isFinite(meters)) {
+    return '—';
+  }
+
+  const nonNegativeMeters = Math.max(0, meters);
+  if (nonNegativeMeters < 1_000) {
+    return `${Math.round(nonNegativeMeters)} m`;
+  }
+  return `${(nonNegativeMeters / 1_000).toFixed(2)} km`;
+}
+
+export const formatDistance = formatCourseDistance;
 
 export const formatDuration = formatSimulationDuration;
 
@@ -291,6 +307,9 @@ export class DomView {
     const isStatusViewModel = 'controls' in stateOrStatus;
     const simulationTimeSeconds = stateOrStatus.simulationTimeSeconds;
     const totalDurationSeconds = stateOrStatus.totalDurationSeconds;
+    const courseLengthMeters = isStatusViewModel
+      ? stateOrStatus.courseLengthMeters
+      : stateOrStatus.course?.totalDistanceMeters ?? null;
     const playback = stateOrStatus.playback;
     const participantCount = isStatusViewModel
       ? stateOrStatus.participantCount
@@ -302,6 +321,7 @@ export class DomView {
 
     this.elements.simulationTime.textContent = formatSimulationDuration(simulationTimeSeconds);
     this.elements.totalDuration.textContent = formatSimulationDuration(totalDurationSeconds);
+    this.elements.courseLength.textContent = formatCourseDistance(courseLengthMeters);
     this.elements.playbackState.textContent = DEFAULT_PLAYBACK_STATE_LABELS[playback];
     this.elements.participantCount.textContent = String(participantCount);
     this.elements.excludedRowCount.textContent = String(excludedRowCount);

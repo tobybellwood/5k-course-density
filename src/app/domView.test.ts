@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ApplicationState } from './types';
-import { createDomView, formatSimulationDuration } from './domView';
+import { createDomView, formatCourseDistance, formatSimulationDuration } from './domView';
 import { createInitialApplicationState } from './state';
 import { createApplicationState, createCourseTrack, createParticipantRecord, createValidationSummary } from '../domain/validation';
 import { simulate } from '../domain/simulation';
@@ -34,6 +34,7 @@ function installMarkup(): void {
     <div id="status"></div>
     <span id="simulation-time"></span>
     <span id="total-duration"></span>
+    <span id="course-length"></span>
     <span id="playback-state"></span>
     <span id="participant-count"></span>
     <span id="excluded-row-count"></span>
@@ -87,8 +88,12 @@ describe('DomView', () => {
     view.render(availableState());
 
     expect(formatSimulationDuration(3_661)).toBe('1:01:01');
+    expect(formatCourseDistance(100)).toBe('100 m');
+    expect(formatCourseDistance(5_020)).toBe('5.02 km');
+    expect(formatCourseDistance(null)).toBe('—');
     expect(document.querySelector('#simulation-time')?.textContent).toBe('1:01');
     expect(document.querySelector('#total-duration')?.textContent).toBe('1:01:01');
+    expect(document.querySelector('#course-length')?.textContent).toBe('100 m');
     expect(document.querySelector('#playback-state')?.textContent).toBe('Paused');
     expect(view.elements.participantCount.textContent).toBe('1');
     expect(view.elements.excludedRowCount.textContent).toBe('2');

@@ -44,6 +44,7 @@ async function loadBundledExample(page: Page): Promise<void> {
   await expect(page.locator('#start-playback-button')).toBeEnabled({ timeout: 15_000 });
   await expect(page.locator('#participant-count')).not.toHaveText('0');
   await expect(page.locator('#total-duration')).not.toHaveText('0:00');
+  await expect(page.locator('#course-length')).toHaveText(/(?:m|km)/);
 }
 
 async function openDisclosure(page: Page, id: string): Promise<void> {
