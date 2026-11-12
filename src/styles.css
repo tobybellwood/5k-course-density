@@ -111,6 +111,146 @@ select:focus-visible,
   font-size: clamp(1rem, 1.5vw, 1.125rem);
 }
 
+.app-header-top {
+  display: flex;
+  width: min(100%, 80rem);
+  margin-right: auto;
+  margin-left: auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.app-header-top h1,
+.control-rail .app-header .app-header-top h1 {
+  width: auto;
+  margin: 0;
+}
+
+.help-button {
+  flex: 0 0 auto;
+  min-height: 2.5rem;
+  border-color: #bfdbfe;
+  padding: 0.5rem 0.75rem;
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-size: 0.9rem;
+}
+
+.help-button:hover:not(:disabled) {
+  border-color: #ffffff;
+  background: #ffffff;
+  color: #172554;
+}
+
+.help-dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(calc(100% - 2rem), 38rem);
+  height: min(85vh, 44rem);
+  max-width: none;
+  max-height: min(85vh, 44rem);
+  margin: auto;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0;
+  color: var(--color-ink);
+  background: var(--color-panel);
+  box-shadow: 0 1rem 3rem rgb(15 23 42 / 25%);
+}
+
+.help-dialog:not([open]) {
+  display: none;
+}
+
+.help-dialog::backdrop {
+  background: rgb(15 23 42 / 65%);
+}
+
+.help-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: #172554;
+  color: #ffffff;
+}
+
+.help-dialog-header h2 {
+  margin: 0;
+  color: inherit;
+  font-size: 1.2rem;
+  line-height: 1.25;
+}
+
+.help-dialog-header form,
+.help-dialog-footer form {
+  margin: 0;
+}
+
+.help-dialog-close {
+  width: 2.5rem;
+  min-height: 2.5rem;
+  border-color: #bfdbfe;
+  padding: 0;
+  background: transparent;
+  color: #ffffff;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.help-dialog-close:hover:not(:disabled) {
+  border-color: #ffffff;
+  background: #1e3a8a;
+}
+
+.help-dialog-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+.help-dialog-body p {
+  margin-top: 0;
+}
+
+.help-steps {
+  display: grid;
+  gap: 0.875rem;
+  margin: 1rem 0 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.help-steps li {
+  padding-left: 0.25rem;
+}
+
+.help-steps strong {
+  color: var(--color-ink);
+}
+
+.help-dialog-body h3 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+.help-disclaimer {
+  border-top: 1px solid var(--color-border);
+  padding-top: 0.875rem;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.help-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border);
+  padding: 0.875rem 1.25rem;
+  background: #f8fafc;
+}
+
 .app-main {
   display: grid;
   grid-template-columns: minmax(16rem, 20%) minmax(0, 1fr);

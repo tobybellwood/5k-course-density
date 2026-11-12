@@ -26,6 +26,33 @@ function setInitialMobileDisclosureState(root: HTMLElement, document: Document):
   mediaQuery.addEventListener?.('change', syncDisclosureState);
 }
 
+function bindHelpDialog(root: HTMLElement): void {
+  const helpButton = root.querySelector<HTMLButtonElement>('#help-button');
+  const dialog = root.querySelector<HTMLDialogElement>('#help-dialog');
+  if (helpButton === null || dialog === null) {
+    return;
+  }
+
+  helpButton.addEventListener('click', () => {
+    if (dialog.open) {
+      return;
+    }
+    if (typeof dialog.showModal === 'function') {
+      dialog.showModal();
+    } else {
+      dialog.setAttribute('open', '');
+    }
+  });
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) {
+      dialog.close();
+    }
+  });
+  dialog.addEventListener('close', () => {
+    helpButton.focus();
+  });
+}
+
 /** Compose the browser adapters around the static application services. */
 export async function bootstrapApplication(
   document: Document = globalThis.document,
@@ -36,6 +63,7 @@ export async function bootstrapApplication(
   }
 
   setInitialMobileDisclosureState(root, document);
+  bindHelpDialog(root);
 
   const appController = new AppController();
   const domView = createDomView(root);

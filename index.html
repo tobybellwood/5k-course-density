@@ -20,12 +20,90 @@
       <main class="app-main">
         <aside class="control-rail" aria-label="Course density controls">
           <header class="app-header">
-            <h1>Course Density Visualization</h1>
+            <div class="app-header-top">
+              <h1>Course Density Visualization</h1>
+              <button
+                id="help-button"
+                class="help-button"
+                type="button"
+                aria-haspopup="dialog"
+                aria-controls="help-dialog"
+              >
+                Help
+              </button>
+            </div>
             <p>
               Replay participant movement along a course using finish times from a
               results page.
             </p>
           </header>
+
+          <dialog id="help-dialog" class="help-dialog" aria-labelledby="help-dialog-title">
+            <div class="help-dialog-header">
+              <h2 id="help-dialog-title">How to use the course map</h2>
+              <form method="dialog">
+                <button class="help-dialog-close" type="submit" aria-label="Close help">
+                  <span aria-hidden="true">×</span>
+                </button>
+              </form>
+            </div>
+            <div class="help-dialog-body">
+              <p>
+                Start with the bundled example or load your own course and results files.
+                The map then replays where participants are likely to be along the route.
+              </p>
+
+              <ol class="help-steps">
+                <li>
+                  <strong>Load an example.</strong>
+                  Choose a bundled results set and select <em>Reset to bundled example</em>.
+                  This is the quickest way to see the tool working.
+                </li>
+                <li>
+                  <strong>Load your own event.</strong>
+                  Upload a GPX course file and an HTML results file. Save the event results
+                  page as HTML first, using your browser’s “Save as” command.
+                </li>
+                <li>
+                  <strong>Replay the event.</strong>
+                  Select <em>Start</em> to animate participants, <em>Pause</em> to hold the
+                  current moment, or <em>Reset playback</em> to return to the start.
+                </li>
+                <li>
+                  <strong>Explore the map.</strong>
+                  Use the map controls to pan and zoom. Select a participant marker to see
+                  their completion, finish time, and current simulation time.
+                </li>
+                <li>
+                  <strong>Change what is shown.</strong>
+                  The visualization controls can show or hide participant markers, display
+                  course density, and show finisher numbers on the markers.
+                </li>
+                <li>
+                  <strong>Adjust density.</strong>
+                  Choose the density grid size, hide cells below a minimum number of people,
+                  or set a warning colour threshold for busy areas.
+                </li>
+              </ol>
+
+              <h3>If something does not load</h3>
+              <p>
+                Read the Notices panel for details. The tool keeps the previous valid course
+                or results data when a replacement file cannot be parsed. Both files must
+                contain valid course or results data before playback can start.
+              </p>
+
+              <p class="help-disclaimer">
+                This app is not affiliated with, endorsed by or connected to parkrun Limited.
+                parkrun is a registered trademark of parkrun Limited.
+              </p>
+            </div>
+            <div class="help-dialog-footer">
+              <form method="dialog">
+                <button type="submit">Close help</button>
+              </form>
+            </div>
+          </dialog>
 
           <section id="playback-controls" class="panel" aria-labelledby="playback-heading">
             <h2 id="playback-heading">Playback controls</h2>
