@@ -163,6 +163,27 @@ select:focus-visible,
   padding: 1rem;
 }
 
+.mobile-disclosure > summary {
+  display: block;
+  color: var(--color-ink);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+  cursor: pointer;
+}
+
+.mobile-disclosure > summary::marker {
+  color: var(--color-accent);
+}
+
+.mobile-disclosure[open] > summary {
+  margin-bottom: 0.875rem;
+}
+
+.disclosure-content {
+  min-width: 0;
+}
+
 .panel h2,
 .map-region h2 {
   margin: 0 0 0.875rem;
@@ -524,12 +545,21 @@ select:focus-visible,
   filter: none;
 }
 
+@media (min-width: 801px) {
+  .mobile-disclosure > summary {
+    cursor: default;
+    list-style: none;
+  }
+
+  .mobile-disclosure > summary::-webkit-details-marker {
+    display: none;
+  }
+}
+
 @media (max-width: 800px) {
   .app-main {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "rail"
-      "map";
+    display: flex;
+    flex-direction: column;
     height: auto;
     min-height: 100vh;
     gap: 1rem;
@@ -538,9 +568,18 @@ select:focus-visible,
   }
 
   .control-rail {
+    display: contents;
     max-height: none;
     padding: 0;
     overflow: visible;
+  }
+
+  #map-region {
+    order: 6;
+  }
+
+  #notice-panel {
+    order: 7;
   }
 
   .control-rail .app-header {
@@ -593,7 +632,11 @@ select:focus-visible,
 
   .button-row {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #reset-playback-button {
+    grid-column: 1 / -1;
   }
 
   .button-row button {

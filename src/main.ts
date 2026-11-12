@@ -10,6 +10,22 @@ function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.length > 0 ? error.message : fallback;
 }
 
+function setInitialMobileDisclosureState(root: HTMLElement, document: Document): void {
+  const mediaQuery = document.defaultView?.matchMedia?.('(max-width: 800px)');
+  if (mediaQuery === undefined) {
+    return;
+  }
+
+  const syncDisclosureState = (): void => {
+    root.querySelectorAll<HTMLDetailsElement>('.mobile-disclosure').forEach((disclosure) => {
+      disclosure.open = !mediaQuery.matches;
+    });
+  };
+
+  syncDisclosureState();
+  mediaQuery.addEventListener?.('change', syncDisclosureState);
+}
+
 /** Compose the browser adapters around the static application services. */
 export async function bootstrapApplication(
   document: Document = globalThis.document,
@@ -18,6 +34,8 @@ export async function bootstrapApplication(
   if (root === null) {
     return;
   }
+
+  setInitialMobileDisclosureState(root, document);
 
   const appController = new AppController();
   const domView = createDomView(root);

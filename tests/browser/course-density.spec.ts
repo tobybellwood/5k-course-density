@@ -46,6 +46,13 @@ async function loadBundledExample(page: Page): Promise<void> {
   await expect(page.locator('#total-duration')).not.toHaveText('0:00');
 }
 
+async function openDisclosure(page: Page, id: string): Promise<void> {
+  const disclosure = page.locator(`#${id}`);
+  if ((await disclosure.getAttribute('open')) === null) {
+    await disclosure.locator('summary').click();
+  }
+}
+
 test.describe('built static course density application', () => {
   test('loads the bundled example and renders the route, markers, and usable status controls', async ({ page }) => {
     await loadBundledExample(page);
@@ -193,6 +200,7 @@ test.describe('built static course density application', () => {
     await loadBundledExample(page);
 
     await expect(page.locator('#map')).toBeVisible();
+    await openDisclosure(page, 'input-controls');
     await expect(page.locator('#map .leaflet-marker-icon').first()).toBeVisible();
     await page.locator('#map .leaflet-marker-icon').first().evaluate((marker) => {
       (marker as HTMLElement).click();
@@ -206,9 +214,12 @@ test.describe('built static course density application', () => {
       documentWidth: document.documentElement.scrollWidth,
       viewportWidth: window.innerWidth,
       mapWidth: document.querySelector<HTMLElement>('#map')?.getBoundingClientRect().width ?? 0,
+      mapBottom: document.querySelector<HTMLElement>('#map-region')?.getBoundingClientRect().bottom ?? 0,
+      noticeTop: document.querySelector<HTMLElement>('#notice-panel')?.getBoundingClientRect().top ?? 0,
     }));
     expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
     expect(layout.mapWidth).toBeGreaterThan(0);
+    expect(layout.noticeTop).toBeGreaterThanOrEqual(layout.mapBottom);
     await expect(page.locator('#reset-example-button')).toBeVisible();
     await expect(page.locator('#start-playback-button')).toBeEnabled();
   });
@@ -309,6 +320,7 @@ test.describe('built static course density application', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await loadBundledExample(page);
 
+    await openDisclosure(page, 'visualization-controls');
     const finisherSwitch = page.getByRole('switch', { name: 'Show finisher numbers' });
     await expect(finisherSwitch).toHaveCount(1);
     await expect(finisherSwitch).toBeVisible();
@@ -565,6 +577,7 @@ test.describe('built static course density application', () => {
   test('keeps density controls, legend, and map usable at a narrow viewport', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await loadBundledExample(page);
+    await openDisclosure(page, 'visualization-controls');
 
     const layout = await page.evaluate(() => ({
       documentWidth: document.documentElement.scrollWidth,
